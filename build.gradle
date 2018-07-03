@@ -1,0 +1,35 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+version = '0.1.0'
+
+mainClassName = 'lockingTrains.impl.Simulator'
+
+jar {
+    manifest {
+        attributes 'Main-Class': project.getProperty('mainClassName')
+    }
+}
+
+javadoc {
+    options.addBooleanOption('html5', true)
+}
+
+dependencies {
+    test.useJUnitPlatform()
+    testCompile('org.junit.jupiter:junit-jupiter-api:5.2.0')
+    testRuntime('org.junit.jupiter:junit-jupiter-engine:5.2.0')
+    testCompile('junit:junit:4.12') // TODO: junit5?
+    testRuntime('org.junit.vintage:junit-vintage-engine:5.2.0')
+}
+
+repositories {
+    jcenter()
+}
+
+task srcZip(type: Zip, group: 'Distribution', description: 'Archives sources in a zip file.') {
+    from 'src'
+    setArchiveName 'submission.zip'
+}
