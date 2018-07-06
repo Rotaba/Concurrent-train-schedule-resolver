@@ -2,9 +2,11 @@ package lockingTrains.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
-import lockingTrains.shared.Problem;
+import lockingTrains.shared.*;
 import lockingTrains.shared.io.Parser;
 import lockingTrains.validation.CatRecorder;
 import lockingTrains.validation.Logger;
@@ -60,7 +62,75 @@ public class Simulator {
 	 * @return {@code true} if the simulation ran successfully.
 	 */
 	public static boolean run(final Problem problem, final Recorder recorder) {
-		// TODO Start your implementation here. 
+		// TODO Start your implementation here.
+		List<TrainSchedule> schedules = problem.schedules();
+		Map map = problem.map();
+		TrainSchedule sched = schedules.get(0);
+		Location destination = sched.destination(); //task (a)
+		Location origin = sched.origin();
+
+		/*	Hardcoded test one :)
+		try {
+
+
+			List<Connection> empty = new ArrayList<>();
+			List<Connection> connections = map.route(destination, origin, empty);
+			System.out.println(connections.toString());
+
+			recorder.start(sched);
+			print(origin.name());
+			print(destination.name());
+			recorder.leave(sched, origin);
+			print("a");
+			Connection conn = connections.get(3);
+			print(conn.toString());
+			recorder.travel(sched, conn);
+			print("b");
+			conn.travel();
+			recorder.arrive(sched, conn.first());
+			print("c");
+
+
+
+			conn = connections.get(2);
+			recorder.leave(sched, conn.second());
+			recorder.travel(sched, conn);
+			conn.travel();
+			recorder.arrive(sched, conn.first());
+			print("next station:)");
+
+			conn = connections.get(1);
+			recorder.leave(sched, conn.second());
+			recorder.travel(sched, conn);
+			conn.travel();
+			recorder.arrive(sched, conn.first());
+			print("next station:)");
+
+			conn = connections.get(0);
+			recorder.leave(sched, conn.second());
+			recorder.travel(sched, conn);
+			conn.travel();
+			recorder.arrive(sched, conn.first());
+			print("next station:)");
+			print(conn.first().name());
+			print("this was ");
+			recorder.finish(sched);
+			print("hallo");
+			recorder.done();
+			print("welt");
+			return true;
+
+		}catch (InterruptedException e){
+			print("interrrupted");
+		};
+		*/
+
+
+		System.out.println(schedules.size());
 		return false;
 	}
+	private static void print(String str) {
+		System.out.println(str);
+	}
+
 }
