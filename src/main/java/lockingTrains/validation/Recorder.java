@@ -8,6 +8,11 @@ import lockingTrains.shared.TrainSchedule;
  * Interface for recording simulation actions. Your implementation must call
  * these methods appropriately in order to pass the functional correctness
  * tests. The methods document when they shall be called.
+ * <p>
+ * You may assume that every instance with type {@link Recorder} is free of data
+ * races. However, you may not assume that calls to its methods synchronize,
+ * i.e. it is perfectly fine for an instance with type {@link Recorder} to have
+ * its methods executed in parallel.
  */
 public abstract class Recorder {
 	/**
