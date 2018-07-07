@@ -148,7 +148,7 @@ public class Validator extends Recorder {
 	}
 
 	@Override
-	public void pause(final TrainSchedule schedule, final Location location) {
+	public synchronized void pause(final TrainSchedule schedule, final Location location) {
 		pause(System.currentTimeMillis(), schedule, location);
 	}
 
@@ -166,7 +166,7 @@ public class Validator extends Recorder {
 	}
 
 	@Override
-	public void resume(final TrainSchedule schedule, final Location location) {
+	public synchronized void resume(final TrainSchedule schedule, final Location location) {
 		resume(System.currentTimeMillis(), schedule, location);
 	}
 
