@@ -14,6 +14,12 @@ jar {
     }
 }
 
+run {
+    if (project.hasProperty('runArgs')) {
+        args Eval.me(runArgs)
+    }
+}
+
 javadoc {
     options.encoding = 'UTF-8'
     options.addBooleanOption('html5', true)
