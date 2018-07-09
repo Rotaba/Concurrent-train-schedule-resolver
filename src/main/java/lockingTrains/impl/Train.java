@@ -32,10 +32,13 @@ public class Train extends Thread {
     }
 
     //todo: teste, was passiert, wenn ein zug auf einem parkplatz warten muss, und bereits aufm parkplatz steht
+
+    /**
+     * starts a new thread of our train
+     */
     public void run() {
         List <Connection> route ;
         try{
-
             recorder.start(trainSchedule);
         }catch (Exception e){ error = true; return;}
         while(true) {
@@ -43,16 +46,7 @@ public class Train extends Thread {
             assert (route != null);
             if (trainService.reserveConnections(route)) {
                 //route was reserved
-                if(everyInvocationOfRecorderNeedsTryCatch(route)) return;/*
-                if(geparkt) {
-                    geparkt = false;
-                    recorder.resume(trainSchedule, currentLocation);
-                    currentLocation.freeParking();
-                    print("freed parking 1");
-                }
-                try {
-                    drive(route);
-                } catch (Exception e) {error = true; return;}*/
+                if(everyInvocationOfRecorderNeedsTryCatch(route)) return;
             } else {
                 //could not reserve whole route
                 List<Connection> alreadyTaken = new ArrayList<>();
@@ -69,16 +63,7 @@ public class Train extends Thread {
                 if (!(route == null)) {
                     //we found an alternative route
                     if(trainService.reserveConnections(route)){
-                        if(everyInvocationOfRecorderNeedsTryCatch(route)) return;/*
-                        if(geparkt) {
-                            geparkt = false;
-                            recorder.resume(trainSchedule, currentLocation);
-                            currentLocation.freeParking();
-                            print("freed parking 2");
-                        }
-                        try {
-                            drive(route);
-                        } catch (Exception e) {error = true; return;}*/
+                        if(everyInvocationOfRecorderNeedsTryCatch(route)) return;
                     }
                 } else {
                     //there is no route without reserved parts
@@ -98,16 +83,7 @@ public class Train extends Thread {
                             throw new IllegalStateException();
                         }
                         if(everyInvocationOfRecorderNeedsTryCatch(route)) return;
-                       /* try {
-                            if (geparkt) {
-                                geparkt = false;
-                                recorder.resume(trainSchedule, currentLocation);
-                                currentLocation.freeParking();
-                                print("freed parking 3");
-                            }
-                            drive(route);
-                            geparkt = true;
-                        } catch (Exception e) {error = true; return;}*/
+                        geparkt = true;
                     }
                 }
             }
@@ -124,6 +100,14 @@ public class Train extends Thread {
         }
     }
 
+    /**
+     * surrounds some invocations of the recorder (like drive) with an try catch block
+     * as the recorder cound throw exceptions. If an exception is thrown, error is set to true and true is returned
+     * this method internally calls drive(route).
+     * We declared this method just that our code looks better
+     * @param route the route that will given to drive to drive this route
+     * @return {@code true} if the recorder throws an exception
+     */
     private boolean everyInvocationOfRecorderNeedsTryCatch(List <Connection> route)  {
         try {
             if (geparkt) {
@@ -225,7 +209,7 @@ public class Train extends Thread {
         System.out.println(str);
     }
 
-    public boolean getError() {
+    boolean getError() {
         return error;
     }
 }
