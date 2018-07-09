@@ -54,8 +54,15 @@ public class Train extends Thread {
                 }
                 //update route
                 route = map.route(currentLocation, trainSchedule.destination(), alreadyTaken);
-                //there is no route without reserved parts
-                if (route == null) {
+                if (!(route == null)) {
+                    //we found an alternative route
+                    if(trainService.reserveConnections(route)){
+                        print("drive wird als zweites aufgerufen von " + Thread.currentThread().getId());
+                        drive(route);
+                        System.out.println("wow, this basic block is really taken o.O");
+                    }
+                } else {
+                    //there is no route without reserved parts
                     route = map.route(currentLocation, trainSchedule.destination(), empty);
                     //find nearest parking to destination
                     route = findAndReserveParking(route);
@@ -69,15 +76,9 @@ public class Train extends Thread {
                             throw new IllegalStateException();
                         }
 
-                        print("drive wird als zweites aufgerufen von " + Thread.currentThread().getId());
+                        print("drive wird als drittes aufgerufen von " + Thread.currentThread().getId());
                         drive(route);
                     }
-                    //TODO back to point b
-
-                } else {
-                    print("drive wird als drisstes aufgerufen von " + Thread.currentThread().getId());
-                    drive(route);
-                    System.out.println("wow, this basic block is really taken o.O");
                 }
             }
             if (currentLocation.equals(trainSchedule.destination())) {

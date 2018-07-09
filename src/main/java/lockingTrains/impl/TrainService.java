@@ -84,6 +84,7 @@ public class TrainService {
                 }
             }
             if(reservedAll) return reservedAll;
+            wait();
         }
     }
 
