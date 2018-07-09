@@ -1,0 +1,20 @@
+image: openjdk:10-jdk-slim
+
+stages:
+  - build
+  - check
+
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+before_script:
+  - export GRADLE_USER_HOME=`pwd`/.gradle
+
+build:
+  stage: build
+  script: ./gradlew :assemble
+
+check:
+  stage: check
+  script: ./gradlew :check
+  allow_failure: true # set this to false once you pass the tests
