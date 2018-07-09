@@ -43,6 +43,7 @@ public class Train extends Thread {
             assert (route != null);
             if (trainService.reserveConnections(route)) {
                 //route was reserved
+                if(everyInvocationOfRecorderNeedsTryCatch(route)) return;/*
                 if(geparkt) {
                     geparkt = false;
                     recorder.resume(trainSchedule, currentLocation);
@@ -51,7 +52,7 @@ public class Train extends Thread {
                 }
                 try {
                     drive(route);
-                } catch (Exception e) {error = true; return;}
+                } catch (Exception e) {error = true; return;}*/
             } else {
                 //could not reserve whole route
                 List<Connection> alreadyTaken = new ArrayList<>();
@@ -68,6 +69,7 @@ public class Train extends Thread {
                 if (!(route == null)) {
                     //we found an alternative route
                     if(trainService.reserveConnections(route)){
+                        if(everyInvocationOfRecorderNeedsTryCatch(route)) return;/*
                         if(geparkt) {
                             geparkt = false;
                             recorder.resume(trainSchedule, currentLocation);
@@ -76,7 +78,7 @@ public class Train extends Thread {
                         }
                         try {
                             drive(route);
-                        } catch (Exception e) {error = true; return;}
+                        } catch (Exception e) {error = true; return;}*/
                     }
                 } else {
                     //there is no route without reserved parts
@@ -96,6 +98,16 @@ public class Train extends Thread {
                             throw new IllegalStateException();
                         }
                         if(everyInvocationOfRecorderNeedsTryCatch(route)) return;
+                       /* try {
+                            if (geparkt) {
+                                geparkt = false;
+                                recorder.resume(trainSchedule, currentLocation);
+                                currentLocation.freeParking();
+                                print("freed parking 3");
+                            }
+                            drive(route);
+                            geparkt = true;
+                        } catch (Exception e) {error = true; return;}*/
                     }
                 }
             }
@@ -119,12 +131,16 @@ public class Train extends Thread {
                 recorder.resume(trainSchedule, currentLocation);
                 currentLocation.freeParking();
                 print("freed parking ");
-                drive(route);
-                geparkt = true;
-
             }
-        }catch (Exception e) {error = true; return true;}
+            drive(route);
+        } catch (Exception e) {
+            error = true;
+            return true;
+        }
         return false;
+
+
+
     }
 
     //we leverage, that the route is sorted such that the first element is the first connection

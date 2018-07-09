@@ -17,4 +17,4 @@ build:
 check:
   stage: check
   script: ./gradlew :check
-  allow_failure: true # set this to false once you pass the tests
+  allow_failure: false # set this to false once you pass the tests
