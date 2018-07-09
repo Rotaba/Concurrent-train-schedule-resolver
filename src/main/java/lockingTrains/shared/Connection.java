@@ -26,7 +26,7 @@ public class Connection extends Position {
 	private final Location second;
 	private final int time;
 	private final int id;
-	private Lock lock;
+	private final Lock lock;
 
 	/**
 	 * Constructs a new connection.
@@ -84,7 +84,7 @@ public class Connection extends Position {
 		Thread.sleep(time);
 	}
 
-	public synchronized Lock getLock() {
+	public Lock getLock() {
 		return lock;
 	}
 

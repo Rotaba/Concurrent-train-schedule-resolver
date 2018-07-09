@@ -67,19 +67,33 @@ public class Simulator {
 		Map map = problem.map();
 		TrainService trainService = new TrainService();
 		Train[] trains = new Train[schedules.size()];
+		final boolean[] isException = new boolean[1];
+	/*	Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
+
+			public void uncaughtException(Thread th, Throwable ex) {
+				System.out.println("Uncaught exception: " + ex);
+				isException[0] =  true;
+			}
+		};*/
+
+		boolean[] errors = new boolean[schedules.size()];
+
+
 		for (int i = 0; i < schedules.size(); i++) {
 			trains[i] = new Train(schedules.get(i), recorder, map, trainService);
+		//	trains[i].setUncaughtExceptionHandler(handler);
 			trains[i].start();
-			print("started one train "+ i);
 		}
 		for (int i = 0; i < schedules.size(); i++) {
 			try {
 				trains[i].join();
+				if(trains[i].getError()) return false;
 			} catch (Exception e) {
 				print("simulation interrupted, who was this");
 				return false;
 			}
 		}
+		//if(isException[0]) return false;
 		recorder.done();
 		return true;
 

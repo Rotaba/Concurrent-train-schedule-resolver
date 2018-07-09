@@ -8,7 +8,7 @@ import java.util.NoSuchElementException;
  *
  * <ol>
  * <li>station (infinite capacity; project description: Bahnhof)</li>
- * <li>crossing (capacity of 0; project description: Verbindungspunkt)</li>
+	 * <li>crossing (capacity of 0; project description: Verbindungspunkt)</li>
  * <li>siding (finite positive capacity; project description: Knotenpunkt)</li>
  * </ol>
  */
@@ -71,10 +71,10 @@ public class Location extends Position {
 				throw new NoSuchElementException("Infinite capacity cannot have finite bound!");
 			return value;
 		}
-		public int reservedParking() {
+		public synchronized int reservedParking() {
 			return reservedParking;
 		}
-		public void reserve() {
+		public synchronized void reserve() {
 			reservedParking++;
 		}
 		public void leave() {
@@ -109,7 +109,7 @@ public class Location extends Position {
 		this.id = counter++;
 	}
 
-	//false wenn nur verbindungspunkt
+
 	synchronized public boolean reserveParking()  {
 		if(isStation()) return true;
 		if(capacity.value() == 0) {
@@ -124,6 +124,12 @@ public class Location extends Position {
 			System.out.println("unhandled if statement, ");
 			throw new IllegalStateException();
 		}
+	}
+
+
+
+	synchronized public void freeParking() {
+		capacity.leave();
 	}
 
 	/**

@@ -33,7 +33,7 @@ public class TrainService {
     //TODO check ob du die anderen methoden dieser klasse aufrufen kannst
     //gibt true zurück, wenn sich alle connecctions reservieren lassenroute
     //denk dran, bei false auch alle streckenabschnitte wieder freizugeben
-    synchronized boolean reserveConnections(List <Connection> connections){
+     boolean reserveConnections(List <Connection> connections){
         List <Connection> alreadyReserved = new LinkedList<>();
         //try to get all locks of the route
         for (Connection c : connections) {
@@ -51,19 +51,21 @@ public class TrainService {
         return true;
     }
 
-    synchronized boolean reserveConnection(Connection connection) {
+     boolean reserveConnection(Connection connection) {
         return connection.getLock().tryLock();
     }
-    synchronized void freeConnection(Connection connection) {
+      void freeConnection(Connection connection) {
         connection.getLock().unlock();
         //we need notifyAll here, because we do not know which connection will be freed, and
         //which other train does need this freed connection.
-        notifyAll();
+         lock.lock();
+         waitingRouteFree.signalAll();
+         lock.unlock();
     }
 
 
     //punkt (i)
-    synchronized boolean waitingforReservedConnections(List <Connection> connections) throws InterruptedException {
+      boolean waitingforReservedConnections(List <Connection> connections) throws InterruptedException {
         List <Connection> alreadyReserved = new LinkedList<>();
         //try to get all locks of the route
         boolean reservedAll;
@@ -84,7 +86,10 @@ public class TrainService {
                 }
             }
             if(reservedAll) return reservedAll;
-            wait();
+            lock.lock();
+            waitingRouteFree.await();
+            lock.unlock();
+
         }
     }
 
