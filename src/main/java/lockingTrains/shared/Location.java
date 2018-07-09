@@ -23,9 +23,11 @@ public class Location extends Position {
 		public static final Capacity INFINITE = new Capacity(-1);
 
 		private final int value;
+		private int reservedParking;
 
 		private Capacity(final int value) {
 			this.value = value;
+			this.reservedParking = 0;
 		}
 
 		/**
@@ -69,6 +71,15 @@ public class Location extends Position {
 				throw new NoSuchElementException("Infinite capacity cannot have finite bound!");
 			return value;
 		}
+		public int reservedParking() {
+			return reservedParking;
+		}
+		public void reserve() {
+			reservedParking++;
+		}
+		public void leave() {
+			reservedParking--;
+		}
 	}
 
 	/**
@@ -96,6 +107,23 @@ public class Location extends Position {
 		this.x = x;
 		this.y = y;
 		this.id = counter++;
+	}
+
+	//false wenn nur verbindungspunkt
+	synchronized public boolean reserveParking()  {
+		if(isStation()) return true;
+		if(capacity.value() == 0) {
+			return false;
+		} else if(capacity.value() > capacity.reservedParking()) {
+			capacity.reserve();
+			return true;
+		} else if(capacity.value() == capacity.reservedParking()) {
+			//sadly no free parking possibility
+			return false;
+		} else {
+			System.out.println("unhandled if statement, ");
+			throw new IllegalStateException();
+		}
 	}
 
 	/**

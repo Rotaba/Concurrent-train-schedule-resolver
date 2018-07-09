@@ -1,5 +1,8 @@
 package lockingTrains.shared;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * Representation of a connection between two {@link Location}s.
  * <p>
@@ -23,6 +26,7 @@ public class Connection extends Position {
 	private final Location second;
 	private final int time;
 	private final int id;
+	private Lock lock;
 
 	/**
 	 * Constructs a new connection.
@@ -37,6 +41,7 @@ public class Connection extends Position {
 		this.second = second;
 		this.time = time;
 		this.id = counter++;
+		lock = new ReentrantLock();
 	}
 
 	/**
@@ -77,6 +82,10 @@ public class Connection extends Position {
 	 */
 	public void travel() throws InterruptedException {
 		Thread.sleep(time);
+	}
+
+	public synchronized Lock getLock() {
+		return lock;
 	}
 
 	/**

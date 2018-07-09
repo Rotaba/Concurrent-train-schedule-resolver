@@ -65,11 +65,30 @@ public class Simulator {
 		// TODO Start your implementation here.
 		List<TrainSchedule> schedules = problem.schedules();
 		Map map = problem.map();
+		TrainService trainService = new TrainService();
+		Train[] trains = new Train[schedules.size()];
+		for (int i = 0; i < schedules.size(); i++) {
+			trains[i] = new Train(schedules.get(i), recorder, map, trainService);
+			trains[i].start();
+			print("started one train "+ i);
+		}
+		for (int i = 0; i < schedules.size(); i++) {
+			try {
+				trains[i].join();
+			} catch (Exception e) {
+				print("simulation interrupted, who was this");
+				return false;
+			}
+		}
+		recorder.done();
+		return true;
+
+
+		/*	Hardcoded test one :)
 		TrainSchedule sched = schedules.get(0);
 		Location destination = sched.destination(); //task (a)
 		Location origin = sched.origin();
 
-		/*	Hardcoded test one :)
 		try {
 
 
@@ -103,7 +122,7 @@ public class Simulator {
 			recorder.leave(sched, conn.second());
 			recorder.travel(sched, conn);
 			conn.travel();
-			recorder.arrive(sched, conn.first());
+			recorder.arrive(sched, conn.first());zuReservieren
 			print("next station:)");
 
 			conn = connections.get(0);
@@ -124,10 +143,6 @@ public class Simulator {
 			print("interrrupted");
 		};
 		*/
-
-
-		System.out.println(schedules.size());
-		return false;
 	}
 	private static void print(String str) {
 		System.out.println(str);
