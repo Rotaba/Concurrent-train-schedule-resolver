@@ -12,6 +12,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 
+/**
+ *
+ */
 public class Train extends Thread {
     private final TrainSchedule trainSchedule;
     private final Recorder recorder;
@@ -26,9 +29,19 @@ public class Train extends Thread {
     private boolean parking = false;
 
     //an empty List of Connections to call map.route with an empty list to avoid
+    /**
+     *
+     */
     private List<Connection> empty = new ArrayList<>();
 
 
+    /**
+     *
+     * @param trainSchedule
+     * @param recorder
+     * @param map
+     * @param trainService
+     */
     public Train(TrainSchedule trainSchedule, Recorder recorder, Map map, TrainService trainService) {
         this.trainSchedule = trainSchedule;
         this.recorder = recorder;
@@ -39,7 +52,7 @@ public class Train extends Thread {
 
     }
 
-    //todo: teste, was passiert, wenn ein zug auf einem parkplatz warten muss, und bereits aufm parkplatz steht
+
     public void run() {
         try {
             List<Connection> route;
@@ -97,6 +110,10 @@ public class Train extends Thread {
         }
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean isError() {
         return error;
     }
@@ -105,6 +122,12 @@ public class Train extends Thread {
     //from origin that has to be taken, and last element is the connection to the destination
 
     //fahrt durch
+
+    /**
+     *
+     * @param connections
+     * @throws InterruptedException
+     */
     private void drive(List <Connection> connections) throws InterruptedException {
         currentLocation.freeParking();
         if(parking) {
@@ -145,6 +168,12 @@ public class Train extends Thread {
     //finds the next parking, and reserves it, if it's no train station
     //retourns the route without all connections from parking to destination
     //ret null, if the train is already on the next parking
+
+    /**
+     *
+     * @param route
+     * @return
+     */
     private List <Connection> findAndReserveParking(List <Connection> route)  {
         Location dest = this.trainSchedule.destination();
         Location canPark;

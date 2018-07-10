@@ -38,6 +38,14 @@ public class TrainService {
     //TODO check ob du die anderen methoden dieser klasse aufrufen kannst
     //gibt true zurück, wenn sich alle connecctions reservieren lassenroute
     //denk dran, bei false auch alle streckenabschnitte wieder freizugeben
+
+    /**
+     *
+     * @param connections
+     * @param currentLocation
+     * @param id
+     * @return
+     */
     synchronized boolean reserveConnections(List <Connection> connections, Location currentLocation, int id){
         Location location = currentLocation;
         List <Connection> alreadyReservedConnection = new LinkedList<>();
@@ -82,6 +90,12 @@ public class TrainService {
         return true;
     }
 
+    /**
+     *
+     * @param route
+     * @param id
+     * @return
+     */
      Collection<Connection> getAlreadyTakenConnections(List<Connection> route, int id) {
         Collection<Connection> alreadyTaken = new LinkedList<>() ;
         for(Connection c : route) {
@@ -95,7 +109,11 @@ public class TrainService {
         return alreadyTaken;
     }
 
-
+    /**
+     *
+     * @param connection
+     * @param id
+     */
     synchronized void freeConnection(Connection connection, int id) {
         connection.getLock().unlock();
         //we need notifyAll here, because we do not know which connection will be freed, and
@@ -104,6 +122,12 @@ public class TrainService {
         waitingRouteFree.signalAll();
         lock.unlock();
     }
+
+    /**
+     * 
+     * @param location
+     * @param id
+     */
     synchronized void freeLocation(Location location, int id) {
         location.getLock().unlock();
         lock.lock();
@@ -116,11 +140,11 @@ public class TrainService {
     //punkt (i)
     //jetzt müssen die anderen methoden synchronizes sein, sonst kann es vorkommen dass grade einer ins wait set kommt,
     //in dem moment wo der letzte andere signalAll() aufruft, und dann ist er am A...
-    int waitingforReservedConnections(List <Connection> connections, Location currentLocation, int id)
+    void waitingforReservedConnections(List <Connection> connections, Location currentLocation, int id)
             throws InterruptedException {
         while(true) {
             if(reserveConnections(connections, currentLocation, id)) {
-                return 3;
+                return ;
             }
             else {
                 lock.lock();
@@ -129,6 +153,7 @@ public class TrainService {
             }
         }
     }
+
         /*
         print("entered by " + id);
         boolean reservedAll = true;

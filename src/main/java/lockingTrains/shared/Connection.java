@@ -26,6 +26,9 @@ public class Connection extends Position {
 	private final Location second;
 	private final int time;
 	private final int id;
+	/**
+	 *
+	 */
 	private final Lock lock;
 
 	/**
@@ -42,6 +45,14 @@ public class Connection extends Position {
 		this.time = time;
 		this.id = counter++;
 		lock = new ReentrantLock();
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public Lock getLock() {
+		return lock;
 	}
 
 	/**
@@ -82,10 +93,6 @@ public class Connection extends Position {
 	 */
 	public void travel() throws InterruptedException {
 		Thread.sleep(time);
-	}
-
-	public Lock getLock() {
-		return lock;
 	}
 
 	/**

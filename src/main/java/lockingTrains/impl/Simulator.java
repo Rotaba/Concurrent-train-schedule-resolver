@@ -83,67 +83,6 @@ public class Simulator {
 		}
 		recorder.done();
 		return true;
-
-
-		/*	Hardcoded test one :)
-		TrainSchedule sched = schedules.get(0);
-		Location destination = sched.destination(); //task (a)
-		Location origin = sched.origin();
-
-		try {
-
-
-			List<Connection> empty = new ArrayList<>();
-			List<Connection> connections = map.route(destination, origin, empty);
-			System.out.println(connections.toString());
-
-			recorder.start(sched);
-			print(origin.name());
-			print(destination.name());
-			recorder.leave(sched, origin);
-			print("a");
-			Connection conn = connections.get(3);
-			print(conn.toString());
-			recorder.travel(sched, conn);
-			print("b");
-			conn.travel();
-			recorder.arrive(sched, conn.first());
-			print("c");
-
-
-
-			conn = connections.get(2);
-			recorder.leave(sched, conn.second());
-			recorder.travel(sched, conn);
-			conn.travel();
-			recorder.arrive(sched, conn.first());
-			print("next station:)");
-
-			conn = connections.get(1);
-			recorder.leave(sched, conn.second());
-			recorder.travel(sched, conn);
-			conn.travel();
-			recorder.arrive(sched, conn.first());zuReservieren
-			print("next station:)");
-
-			conn = connections.get(0);
-			recorder.leave(sched, conn.second());
-			recorder.travel(sched, conn);
-			conn.travel();
-			recorder.arrive(sched, conn.first());
-			print("next station:)");
-			print(conn.first().name());
-			print("this was ");
-			recorder.finish(sched);
-			print("hallo");
-			recorder.done();
-			print("welt");
-			return true;
-
-		}catch (InterruptedException e){
-			print("interrrupted");
-		};
-		*/
 	}
 	private static void print(String str) {
 		System.out.println(str);
