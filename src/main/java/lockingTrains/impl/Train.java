@@ -23,6 +23,7 @@ public class Train extends Thread {
     private boolean error = false;
     private int connectionLocks = 0;
     private int locationLocks = 0;
+    private boolean parking = false;
 
     //an empty List of Connections to call map.route with an empty list to avoid
     private List<Connection> empty = new ArrayList<>();
@@ -43,6 +44,7 @@ public class Train extends Thread {
         try {
             List<Connection> route;
             recorder.start(trainSchedule);
+            currentLocation.reserveParking();
             while (true) {
                 route = map.route(currentLocation, trainSchedule.destination(), empty);
 
@@ -71,7 +73,6 @@ public class Train extends Thread {
                         route = findAndReserveParking(route);
                         //beachte, route kann null sein, wenn zug bereits aufm parkplatz
                         if (route != null) {
-                            print("hii");
                             trainService.waitingforReservedConnections(route, currentLocation, id);
                             connectionLocks += route.size();
                             locationLocks += route.size() + 1;
@@ -81,10 +82,10 @@ public class Train extends Thread {
                     }
                 }
                 if (currentLocation.equals(trainSchedule.destination())) {
-                    print(connectionLocks + " locks " + locationLocks);
+                  //  print(connectionLocks + " locks " + locationLocks);
                     assert (connectionLocks == 0);
                     assert (0 == locationLocks);
-                    print("finished event");
+                  //  print("finished event");
                     recorder.finish(trainSchedule);
                     return;
                 }
@@ -105,6 +106,10 @@ public class Train extends Thread {
 
     //fahrt durch
     private void drive(List <Connection> connections) throws InterruptedException {
+        currentLocation.freeParking();
+        if(parking) {
+            recorder.resume(trainSchedule, currentLocation);
+        }
         assert (connections != null);
         Connection c;
         while(!connections.isEmpty()) {
@@ -128,7 +133,10 @@ public class Train extends Thread {
             }
             trainService.freeConnection(c, id);
             connectionLocks--;
-
+        }
+        if(!currentLocation.isStation()) {
+            recorder.pause(trainSchedule, currentLocation);
+            parking = true;
         }
         trainService.freeLocation(currentLocation, id);
         locationLocks--;
