@@ -29,7 +29,7 @@ public class Location extends Position {
 
 		private Capacity(final int value) {
 			this.value = value;
-			this.reservedParking = 0;
+			//this.reservedParking = 0;
 		}
 
 		/**
@@ -73,10 +73,10 @@ public class Location extends Position {
 				throw new NoSuchElementException("Infinite capacity cannot have finite bound!");
 			return value;
 		}
-		public synchronized int reservedParking() {
+		public int reservedParking() {
 			return reservedParking;
 		}
-		public synchronized void reserve() {
+		public void reserve() {
 			reservedParking++;
 		}
 		public void leave() {
@@ -118,7 +118,9 @@ public class Location extends Position {
 		return lock;
 	}
 	synchronized public boolean reserveParking()  {
-		if(isStation()) return true;
+		if(isStation()) {
+		    return true;
+		}
 		if(capacity.value() == 0) {
 			return false;
 		} else if(capacity.value() > capacity.reservedParking()) {
@@ -135,8 +137,12 @@ public class Location extends Position {
 
 
 
+	//we leverage here, that trains always start on a train station, so when this method is called, the train is
+    //whether on a station, or he previously called reserveParking()
 	synchronized public void freeParking() {
-		capacity.leave();
+	    if(isStation()) return;
+	    if(capacity.value() == 0) return;
+	    capacity.leave();
 	}
 
 	/**

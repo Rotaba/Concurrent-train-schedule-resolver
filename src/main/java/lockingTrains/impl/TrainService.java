@@ -13,6 +13,10 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * The purpose of this class is to lock the route, when a train is asking for it.
+ * And to unlock connections/locations
+ */
 public class TrainService {
 
     private TrainSchedule trainSchedule;
@@ -34,8 +38,7 @@ public class TrainService {
     //TODO check ob du die anderen methoden dieser klasse aufrufen kannst
     //gibt true zurück, wenn sich alle connecctions reservieren lassenroute
     //denk dran, bei false auch alle streckenabschnitte wieder freizugeben
-    boolean reserveConnections(List <Connection> connections, Location currentLocation, int id){
-        //  print ("first");
+    synchronized boolean reserveConnections(List <Connection> connections, Location currentLocation, int id){
         Location location = currentLocation;
         List <Connection> alreadyReservedConnection = new LinkedList<>();
         List <Location> alreadyReservedLocation = new LinkedList<>();
@@ -54,11 +57,9 @@ public class TrainService {
             //if couldn't get one lock, free all previous hold locks
             if(c.getLock().tryLock()) {
                 //remember all locks you can hold
-                //   print("thread " + id + " holds connection lock " + c.toString());
                 alreadyReservedConnection.add(c);
             }else{
                 for(Connection con : alreadyReservedConnection) {
-                    //       print("thread " + id + " freees connection lock " + con.toString());
                     con.getLock().unlock();
                 }
                 return false;
@@ -81,8 +82,7 @@ public class TrainService {
         return true;
     }
 
-    //  synchronized private void
-    Collection<Connection> getAlreadyTakenConnections(List<Connection> route, int id) {
+     Collection<Connection> getAlreadyTakenConnections(List<Connection> route, int id) {
         Collection<Connection> alreadyTaken = new LinkedList<>() ;
         for(Connection c : route) {
             if(c.getLock().tryLock()) {
@@ -100,61 +100,96 @@ public class TrainService {
         connection.getLock().unlock();
         //we need notifyAll here, because we do not know which connection will be freed, and
         //which other train does need this freed connection.
-        notifyAll();
+        lock.lock();
+        waitingRouteFree.signalAll();
+        lock.unlock();
     }
-    void freeLocation(Location location, int id) {
-        // print("fourth");
-        //  print("thread " + id + " frees location lock " + location.toString());
+    synchronized void freeLocation(Location location, int id) {
         location.getLock().unlock();
+        lock.lock();
+        waitingRouteFree.signalAll();
+        lock.unlock();
+      ;
     }
 
 
     //punkt (i)
-    boolean waitingforReservedConnections(List <Connection> connections, Location currentLocation, int id)
+    //jetzt müssen die anderen methoden synchronizes sein, sonst kann es vorkommen dass grade einer ins wait set kommt,
+    //in dem moment wo der letzte andere signalAll() aufruft, und dann ist er am A...
+    int waitingforReservedConnections(List <Connection> connections, Location currentLocation, int id)
             throws InterruptedException {
-        List <Connection> alreadyReservedConnection = new LinkedList<>();
-        List<Location> alreadyReservedLocation = new LinkedList<>();
-        Location location ;
-        System.out.println("this method is really entered once o.O !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        //try to get all locks of the route
-
-        boolean reservedAll;
         while(true) {
-            location = currentLocation;
-            if(location.getLock().tryLock()) {
-                alreadyReservedLocation.add(location);
-                reservedAll = true;
-                for (Connection c : connections) {
-                    if(c.first().equals(location)) {
-                        location = c.second();
-                    }
-                    else {
-                        location = c.first();
-                    }
-                    //if couldn't get one lock, free all previous hold locks
-                    if (!c.getLock().tryLock() || !location.getLock().tryLock()) {
-                        for (Connection con : alreadyReservedConnection) {
-                            con.getLock().unlock();
-                            alreadyReservedConnection.remove(con);
-                        }
-                        for (Location l : alreadyReservedLocation) {
-                            l.getLock().unlock();
-                            alreadyReservedLocation.remove(l);
-                        }
-                        reservedAll = false;
-                        break;
-
-                    } else {
-                        alreadyReservedConnection.add(c);
-                        alreadyReservedLocation.add(location);
-
-                    }
-                }
-                if (reservedAll) return reservedAll;
+            if(reserveConnections(connections, currentLocation, id)) {
+                return 3;
             }
-            wait();
+            else {
+                lock.lock();
+                waitingRouteFree.await();
+                lock.unlock();
+            }
         }
     }
+        /*
+        print("entered by " + id);
+        boolean reservedAll = true;
+        int holdLocks = 0;
+        while(true) {
+            Location location = currentLocation;
+            List <Connection> alreadyReservedConnection = new LinkedList<>();
+            List <Location> alreadyReservedLocation = new LinkedList<>();
+            List <Location> locationsToReserve = new LinkedList<>();
+            locationsToReserve.add(location);
+            for(Connection connection:connections) {
+                if(connection.first().equals(location)) {
+                    location = connection.second();
+                }
+                else if (connection.second().equals(location)) {
+                    location = connection.first();
+                }
+                else print ("something went wront");
+                locationsToReserve.add(location);
+                if(connection.getLock().tryLock()) {
+                    holdLocks++;
+                    //remember all locks you can hold
+                    alreadyReservedConnection.add(connection);
+                }else{
+                    for(Connection con : alreadyReservedConnection) {
+                        con.getLock().unlock();
+                        holdLocks--;
+                        alreadyReservedConnection.remove(con);
+                    }
+                    reservedAll = false;
+                }
+            }
+            if(reservedAll) {
+                for (Location l : locationsToReserve) {
+                    if (!l.getLock().tryLock()) {
+                        for (Location loc : alreadyReservedLocation) {
+                            loc.getLock().unlock();
+                            holdLocks--;
+                            alreadyReservedLocation.remove(loc);
+                        }
+                        for (Connection c : alreadyReservedConnection) {
+                            c.getLock().unlock();
+                            holdLocks--;
+                            alreadyReservedConnection.remove(c);
+                        }
+                        reservedAll = false;
+                    } else {
+                        alreadyReservedLocation.add(l);
+                        holdLocks++;
+                    }
+                }
+            }
+            if(reservedAll){
+                print("quit by " + id);
+                return holdLocks;
+            }
+        }
+    }*/
+
+
+
     private void print (String str) {
         System.out.println(str);
     }
