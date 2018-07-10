@@ -7,6 +7,7 @@ import lockingTrains.shared.TrainSchedule;
 import lockingTrains.validation.Recorder;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -16,7 +17,8 @@ public class Train extends Thread {
     private final Map map;
     private final TrainService trainService;
     private Location currentLocation;
-    private boolean geparkt = false;
+    private final int id;
+    private static int counter = 0;
     private boolean error = false;
 
     //an empty List of Connections to call map.route with an empty list to avoid
@@ -29,120 +31,79 @@ public class Train extends Thread {
         this.map = map;
         this.trainService = trainService;
         this.currentLocation = trainSchedule.origin();
+        this.id = counter++;
+
     }
 
     //todo: teste, was passiert, wenn ein zug auf einem parkplatz warten muss, und bereits aufm parkplatz steht
-
-    /**
-     * starts a new thread of our train
-     */
     public void run() {
-        List <Connection> route ;
-        try{
+        try {
+            List<Connection> route;
             recorder.start(trainSchedule);
-        }catch (Exception e){ error = true; return;}
-        while(true) {
-            route = map.route(currentLocation, trainSchedule.destination(), empty);
-            assert (route != null);
-            if (trainService.reserveConnections(route)) {
-                //route was reserved
-                if(everyInvocationOfRecorderNeedsTryCatch(route)) return;
-            } else {
-                //could not reserve whole route
-                List<Connection> alreadyTaken = new ArrayList<>();
-                for (Connection c : route) {
-                    if (!trainService.reserveConnection(c)) {
-                        //search for all connections that are already reserved
-                        alreadyTaken.add(c);
-                    }
-                    else {trainService.freeConnection(c);}
-                }
-
-                //update route
-                route = map.route(currentLocation, trainSchedule.destination(), alreadyTaken);
-                if (!(route == null)) {
-                    //we found an alternative route
-                    if(trainService.reserveConnections(route)){
-                        if(everyInvocationOfRecorderNeedsTryCatch(route)) return;
-                    }
+            while (true) {
+                route = map.route(currentLocation, trainSchedule.destination(), empty);
+                assert (route != null);
+                if (trainService.reserveConnections(route, currentLocation, id)) {
+                    //route was reserved
+                    drive(route);
                 } else {
-                    //there is no route without reserved parts
-                    route = map.route(currentLocation, trainSchedule.destination(), empty);
-                    //find nearest parking to destination
-                    try {
-                        route = findAndReserveParking(route);
-                    } catch (Exception e) {error = true; return; }
-                    //beachte, route kann null sein, wenn zug bereits aufm parkplatz, oder kein Parkplatz findet
-                    if(route != null)  {
-
-                        try {
-                            trainService.waitingforReservedConnections(route);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                            print("something went wrong :D");
-                            throw new IllegalStateException();
+                    //could not reserve whole route
+                    Collection<Connection> alreadyTaken;
+                    alreadyTaken = trainService.getAlreadyTakenConnections(route, id);
+                    //update route
+                    route = map.route(currentLocation, trainSchedule.destination(), alreadyTaken);
+                    if (!(route == null)) {
+                        //we found an alternative route
+                        if (trainService.reserveConnections(route, currentLocation, id)) {
+                            drive(route);
                         }
-                        if(everyInvocationOfRecorderNeedsTryCatch(route)) return;
-                        geparkt = true;
+                    } else {
+                        //there is no route without reserved parts
+                        route = map.route(currentLocation, trainSchedule.destination(), empty);
+                        //find nearest parking to destination
+                        route = findAndReserveParking(route);
+                        //beachte, route kann null sein, wenn zug bereits aufm parkplatz
+                        if (route != null) {
+                            try {
+                                trainService.waitingforReservedConnections(route, currentLocation, id);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                                print("something went wrong :D");
+                                throw new IllegalStateException();
+                            }
+                            drive(route);
+                        }
                     }
                 }
-            }
-            if (currentLocation.equals(trainSchedule.destination())) {
-                try {
+                if (currentLocation.equals(trainSchedule.destination())) {
+                    trainService.freeLocation(currentLocation, id);
                     recorder.finish(trainSchedule);
-                }catch (Exception e) {
-                    error = true;
                     return;
-
                 }
-                return;
             }
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            error = true;
         }
     }
 
-    /**
-     * surrounds some invocations of the recorder (like drive) with an try catch block
-     * as the recorder cound throw exceptions. If an exception is thrown, error is set to true and true is returned
-     * this method internally calls drive(route).
-     * We declared this method just that our code looks better
-     * @param route the route that will given to drive to drive this route
-     * @return {@code true} if the recorder throws an exception
-     */
-    private boolean everyInvocationOfRecorderNeedsTryCatch(List <Connection> route)  {
-        try {
-            if (geparkt) {
-                geparkt = false;
-                recorder.resume(trainSchedule, currentLocation);
-                currentLocation.freeParking();
-                print("freed parking ");
-            }
-            drive(route);
-        } catch (Exception e) {
-            error = true;
-            return true;
-        }
-        return false;
-
-
-
+    public boolean isError() {
+        return error;
     }
 
     //we leverage, that the route is sorted such that the first element is the first connection
     //from origin that has to be taken, and last element is the connection to the destination
-    //currentLocation is never a Verbindungspunkt
-    //fahrt durch
 
-    /**
-     *
-     * @param connections
-     * @throws Exception
-     */
-    private void drive(List <Connection> connections) throws Exception {
+    //fahrt durch
+    private void drive(List <Connection> connections) { ;
         assert (connections != null);
         Connection c;
         while(!connections.isEmpty()) {
             c = connections.remove(0);
             recorder.leave(trainSchedule, currentLocation);
+            trainService.freeLocation(currentLocation, id);
             recorder.travel(trainSchedule, c);
             try {
                 c.travel();
@@ -163,8 +124,7 @@ public class Train extends Thread {
                 System.out.println("SOMETHING WENT TOTALLY WRONG, connection tryed which is not currently reachable");
                 throw new IllegalStateException();
             }
-            //we have to free every used connection
-            trainService.freeConnection(c);
+            trainService.freeConnection(c, id);
         }
 
 
@@ -174,7 +134,7 @@ public class Train extends Thread {
     //finds the next parking, and reserves it, if it's no train station
     //retourns the route without all connections from parking to destination
     //ret null, if the train is already on the next parking
-    private List <Connection> findAndReserveParking(List <Connection> connections) throws Exception{
+    private List <Connection> findAndReserveParking(List <Connection> connections)  {
         Location dest = this.trainSchedule.destination();
         Location canPark;
         //betrachte den fall, dass keine freie parkmöglichkeit auf strecke
@@ -187,13 +147,11 @@ public class Train extends Thread {
                 canPark = connections.get(i).second();
             }
             else {
-                 print("in findAndReserveParking, the connections do not drive to destination");
-                 throw new IllegalStateException();
+                print("in findAndReserveParking, the connections do not drive to destination");
+                throw new IllegalStateException();
             }
             if(canPark.reserveParking()) {
-                print("reserved parking");
                 //one parking was reserved or canPark is a train station
-                if(!canPark.isStation()) recorder.pause(trainSchedule, canPark);
                 connections.remove(i);
                 return connections;
             }
@@ -209,7 +167,4 @@ public class Train extends Thread {
         System.out.println(str);
     }
 
-    boolean getError() {
-        return error;
-    }
 }

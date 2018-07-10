@@ -1,6 +1,8 @@
 package lockingTrains.shared;
 
 import java.util.NoSuchElementException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Representation of a map location. Locations can be categorized into one of
@@ -92,6 +94,7 @@ public class Location extends Position {
 	private final int x;
 	private final int y;
 	private final int id;
+	private final Lock lock;
 
 	/**
 	 * Constructs a new location.
@@ -107,9 +110,13 @@ public class Location extends Position {
 		this.x = x;
 		this.y = y;
 		this.id = counter++;
+		this.lock = new ReentrantLock();
 	}
 
 
+	public Lock getLock() {
+		return lock;
+	}
 	synchronized public boolean reserveParking()  {
 		if(isStation()) return true;
 		if(capacity.value() == 0) {
