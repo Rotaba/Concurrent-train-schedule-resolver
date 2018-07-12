@@ -2,8 +2,6 @@ package lockingTrains.impl;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import lockingTrains.shared.*;
@@ -65,8 +63,9 @@ public class Simulator {
 		// TODO Start your implementation here.
 		List<TrainSchedule> schedules = problem.schedules();
 		Map map = problem.map();
-		TrainService trainService = new TrainService();
+		TrainService trainService = new TrainService(map);
 		Train[] trains = new Train[schedules.size()];
+		
 		for (int i = 0; i < schedules.size(); i++) {
 			trains[i] = new Train(schedules.get(i), recorder, map, trainService);
 			trains[i].start();

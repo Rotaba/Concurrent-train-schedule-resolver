@@ -8,9 +8,7 @@ import lockingTrains.validation.Recorder;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
 
 /**
  *
@@ -60,8 +58,7 @@ public class Train extends Thread {
             currentLocation.reserveParking();
             while (true) {
                 route = map.route(currentLocation, trainSchedule.destination(), empty);
-
-                if (trainService.reserveConnections(route, currentLocation, id)) {
+                if (trainService.reserveRoute(route, currentLocation, id)) {
                     connectionLocks += route.size();
                     locationLocks += route.size() + 1;
                     //route was reserved
@@ -69,24 +66,30 @@ public class Train extends Thread {
                 } else {
                     //could not reserve whole route
                     Collection<Connection> alreadyTaken;
-                    alreadyTaken = trainService.getAlreadyTakenConnections(route, id);
-                    //update route
-                    route = map.route(currentLocation, trainSchedule.destination(), alreadyTaken);
-                    if (route != null) {
-                        //we found an alternative route
-                        if (trainService.reserveConnections(route, currentLocation, id)) {
-                            connectionLocks += route.size();
-                            locationLocks += route.size() + 1;
-                            drive(route);
+                    while(true) {
+                        alreadyTaken = trainService.getAlreadyTakenConnections(route, id);
+                        //update route
+                        route = map.route(currentLocation, trainSchedule.destination(), alreadyTaken);
+                        if (route != null) {
+                            //we found an alternative route
+                            if (trainService.reserveRoute(route, currentLocation, id)) {
+                                connectionLocks += route.size();
+                                locationLocks += route.size() + 1;
+                                drive(route);
+                                break;
+                            }
+                        } else {
+                            break;
                         }
-                    } else {
+                    }
+                    if (route == null) {
                         //there is no route without reserved parts
                         route = map.route(currentLocation, trainSchedule.destination(), empty);
                         //find nearest parking to destination
                         route = findAndReserveParking(route);
                         //beachte, route kann null sein, wenn zug bereits aufm parkplatz
                         if (route != null) {
-                            trainService.waitingforReservedConnections(route, currentLocation, id);
+                            trainService.waitingforReservedRoute(route, currentLocation, id);
                             connectionLocks += route.size();
                             locationLocks += route.size() + 1;
                             //assert(test == route.size() *2 + 1);
@@ -94,12 +97,14 @@ public class Train extends Thread {
                         }
                     }
                 }
+
                 if (currentLocation.equals(trainSchedule.destination())) {
                   //  print(connectionLocks + " locks " + locationLocks);
                     assert (connectionLocks == 0);
                     assert (0 == locationLocks);
                   //  print("finished event");
                     recorder.finish(trainSchedule);
+                    trainService.setFinished();
                     return;
                 }
             }
