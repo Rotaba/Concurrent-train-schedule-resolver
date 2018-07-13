@@ -311,7 +311,7 @@ public class TrainService {
 
 
 
-    private void print (String str) {
+    synchronized void print (String str) {
         System.out.println(str);
     }
 

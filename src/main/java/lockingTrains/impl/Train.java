@@ -8,6 +8,7 @@ import lockingTrains.validation.Recorder;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -94,6 +95,7 @@ public class Train extends Thread {
                             locationLocks += route.size() + 1;
                             //assert(test == route.size() *2 + 1);
                             drive(route);
+                         //   print("zum parkingh");
                         }
                     }
                 }
@@ -137,6 +139,7 @@ public class Train extends Thread {
         currentLocation.freeParking();
         if(parking) {
             recorder.resume(trainSchedule, currentLocation);
+            parking = false;
         }
         assert (connections != null);
         Connection c;
@@ -179,7 +182,7 @@ public class Train extends Thread {
      * @param route
      * @return
      */
-    private List <Connection> findAndReserveParking(List <Connection> route)  {
+  /*  private List <Connection> findAndReserveParking(List <Connection> route)  {
         Location dest = this.trainSchedule.destination();
         Location canPark;
         //betrachte den fall, dass keine freie parkmöglichkeit auf strecke
@@ -210,6 +213,47 @@ public class Train extends Thread {
         }
         return  null;
     }
+*/
+
+
+    /**
+     *
+     * @param route
+     * @return
+     */
+    private List <Connection> findAndReserveParking(List <Connection> route)  {
+        Location current = currentLocation;
+        Location canPark;
+        LinkedList <Connection> returnRoute = new LinkedList<>();
+        for(Connection c : route) {
+            if(c.first() == current) {
+                canPark = c.second();
+            }
+            else if (c.second() == current) {
+                canPark = c.first();
+            }
+            else {
+                print("in findAndReserveParking, the connections do not drive to destination");
+                throw new IllegalStateException();
+            }
+
+            if(canPark.reserveParking()) {
+                returnRoute.addLast(c);
+                return returnRoute;
+            }
+            else {
+                current = canPark;
+                returnRoute.add(c);
+            }
+        }
+        print("This state should never be reached, as the reserved parking should at least be the destination " +
+                "station");
+        throw new IllegalStateException();
+    }
+
+
+
+
 
     private void print(String str) {
         System.out.println(str);
