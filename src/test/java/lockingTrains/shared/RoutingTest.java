@@ -153,4 +153,28 @@ public class RoutingTest {
 
 		assertNull(map.route(c, a, List.of(connection)));
 	}
+
+	@Test
+	public void avoidStation() {
+		final var locations = new ArrayList<Location>();
+		final var a = new Location("A", Location.Capacity.INFINITE, 0, 0);
+		final var b = new Location("B", Location.Capacity.INFINITE, 0, 0);
+		final var c = new Location("C", Location.Capacity.INFINITE, 0, 0);
+		locations.add(a);
+		locations.add(b);
+		locations.add(c);
+
+		final var connections = new ArrayList<Connection>();
+		connections.add(new Connection(a, b, 10));
+		connections.add(new Connection(b, c, 10));
+		connections.add(new Connection(a, c, 50));
+
+		final var map = new Map("", locations, connections);
+
+		final var route = map.route(c, a, List.of(b));
+
+		assertEquals(1, route.size());
+
+		assertEquals(50, route.get(0).time());
+	}
 }
