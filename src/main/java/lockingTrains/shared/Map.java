@@ -81,8 +81,7 @@ public class Map {
 	 * {@code [(A,B), (B,C)]}. See {@link Connection} for details.
 	 * <p>
 	 * <b>Important note:</b> For this method to work properly, {@code avoid} may
-	 * only contain references that are stored in this {@link Map}. Also,
-	 * {@code avoid} must not contain {@code origin} or {@code destination}!
+	 * only contain references that are stored in this {@link Map}.
 	 *
 	 * @param origin      starting point of the route.
 	 * @param destination end point of the route.
@@ -93,7 +92,8 @@ public class Map {
 	 * @see Connection
 	 */
 	public List<Connection> route(final Location origin, final Location destination, final Collection<Position> avoid) {
-		assert !avoid.contains(origin) && !avoid.contains(destination);
+		if (avoid.contains(origin) || avoid.contains(destination))
+			return null;
 
 		final var locations = new ArrayList<>(this.locations);
 		locations.removeIf(avoid::contains);
