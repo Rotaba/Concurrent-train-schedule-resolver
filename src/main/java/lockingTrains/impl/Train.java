@@ -62,6 +62,7 @@ public class Train extends Thread {
                     //route was reserved
                     drive(route);
                 } else {
+                    
                     //could not reserve whole route
                     Collection<Position> alreadyTaken;
                     while(true) {
