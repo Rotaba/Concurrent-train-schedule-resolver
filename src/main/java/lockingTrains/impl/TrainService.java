@@ -1,9 +1,8 @@
 package lockingTrains.impl;
 
-import lockingTrains.shared.Connection;
-import lockingTrains.shared.Location;
+import javafx.geometry.Pos;
+import lockingTrains.shared.*;
 import lockingTrains.shared.Map;
-import lockingTrains.shared.TrainSchedule;
 import lockingTrains.validation.Recorder;
 
 import java.util.*;
@@ -67,19 +66,7 @@ public class TrainService {
     boolean reserveRoute(List <Connection> connections, Location currentLocation, int id){
         List <Connection> alreadyReservedConnection = new LinkedList<>();
         List <Location> alreadyReservedLocation = new LinkedList<>();
-        List <Location> locationsToReserve = new LinkedList<>();
-        Location location = currentLocation;
-        locationsToReserve.add(location);
-        for(Connection c : connections) {
-            if(c.first().equals(location)) {
-                location = c.second();
-            }
-            else if (c.second().equals(location)) {
-                location = c.first();
-            }
-            else print ("something went wront");
-            locationsToReserve.add(location);
-        }
+        List <Location> locationsToReserve = locationsOnRoute(connections, currentLocation);
 
         int[] connectionsIds = new int[connections.size()];
         int[] locationIds = new int[locationsToReserve.size()];
@@ -88,12 +75,14 @@ public class TrainService {
             connectionsIds[i] = c.id();
             i++;
         }
-        Arrays.sort(connectionsIds);
+
         i = 0;
         for(Location l : locationsToReserve) {
             locationIds[i] = l.id();
             i++;
         }
+        Arrays.sort(connectionsIds);
+        Arrays.sort(locationIds);
 
         for(i = 0; i < connectionsIds.length; i++) {
             if(allConnections.get(connectionsIds[i]-firstConnectionId).getLock().tryLock()){
@@ -182,8 +171,8 @@ public class TrainService {
      * @param id
      * @return
      */
-     Collection<Connection> getAlreadyTakenConnections(List<Connection> route, int id) {
-        Collection<Connection> alreadyTaken = new LinkedList<>() ;
+     Collection<Position> getAlreadyTakenConnections(List<Connection> route, int id) {
+        Collection<Position> alreadyTaken = new LinkedList<>() ;
         for(Connection c : route) {
             if(c.getLock().tryLock()) {
                 c.getLock().unlock();
@@ -194,6 +183,69 @@ public class TrainService {
         }
         return alreadyTaken;
     }
+
+
+
+    Collection<Position> getAlreadyTakenPosition(List<Connection> route, Location currentLocation, int id) {
+        List <Position> avoid = new LinkedList<>();
+        List <Location> locationsToReserve = locationsOnRoute(route, currentLocation);
+
+        int[] connectionsIds = new int[route.size()];
+        int[] locationIds = new int[locationsToReserve.size()];
+
+        int i = 0;
+        for(Connection c : route) {
+            connectionsIds[i] = c.id();
+            i++;
+        }
+
+        i = 0;
+        for(Location l : locationsToReserve) {
+            locationIds[i] = l.id();
+            i++;
+        }
+        Arrays.sort(connectionsIds);
+        Arrays.sort(locationIds);
+
+        //first all connections
+        for(i = 0; i < connectionsIds.length; i++) {
+            if(allConnections.get(connectionsIds[i]-firstConnectionId).getLock().tryLock()){
+                allConnections.get(connectionsIds[i]-firstConnectionId).getLock().unlock();
+            }
+            else {
+                avoid.add(allConnections.get(connectionsIds[i]-firstConnectionId));
+            }
+        }
+
+        //then all locations
+        for(i = 0; i < locationIds.length; i++) {
+            if(allLocations.get(locationIds[i]-firstLocationId).getLock().tryLock()){
+                allLocations.get(locationIds[i]-firstLocationId).getLock().unlock();
+            }
+            else {
+                avoid.add(allLocations.get(locationIds[i]-firstLocationId));
+            }
+        }
+        return avoid;
+    }
+
+    private List<Location> locationsOnRoute(List<Connection> route, Location currentLocation) {
+        List <Location> locationsToReserve = new LinkedList<>();
+        Location location = currentLocation;
+        locationsToReserve.add(location);
+        for(Connection c : route) {
+            if(c.first().equals(location)) {
+                location = c.second();
+            }
+            else if (c.second().equals(location)) {
+                location = c.first();
+            }
+            else print ("something went wront");
+            locationsToReserve.add(location);
+        }
+        return locationsToReserve;
+    }
+
 
     /**
      *
@@ -208,6 +260,7 @@ public class TrainService {
         waitingRouteFree.signalAll();
         lock.unlock();
     }
+
 
     /**
      * 

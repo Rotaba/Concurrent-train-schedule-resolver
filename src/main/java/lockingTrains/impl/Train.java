@@ -1,9 +1,6 @@
 package lockingTrains.impl;
 
-import lockingTrains.shared.Connection;
-import lockingTrains.shared.Location;
-import lockingTrains.shared.Map;
-import lockingTrains.shared.TrainSchedule;
+import lockingTrains.shared.*;
 import lockingTrains.validation.Recorder;
 
 import java.util.ArrayList;
@@ -31,7 +28,7 @@ public class Train extends Thread {
     /**
      *
      */
-    private List<Connection> empty = new ArrayList<>();
+    private List<Position> empty = new ArrayList<>();
 
 
     /**
@@ -66,9 +63,9 @@ public class Train extends Thread {
                     drive(route);
                 } else {
                     //could not reserve whole route
-                    Collection<Connection> alreadyTaken;
+                    Collection<Position> alreadyTaken;
                     while(true) {
-                        alreadyTaken = trainService.getAlreadyTakenConnections(route, id);
+                        alreadyTaken = trainService.getAlreadyTakenPosition(route, currentLocation, id);
                         //update route
                         route = map.route(currentLocation, trainSchedule.destination(), alreadyTaken);
                         if (route != null) {
