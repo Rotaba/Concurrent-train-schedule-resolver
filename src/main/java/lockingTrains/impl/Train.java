@@ -18,25 +18,21 @@ public class Train extends Thread {
     private final TrainService trainService;
     private Location currentLocation;
     private final int id;
-    private static int counter = 0;
+    private static int counter = 0; //DEBUG
     private boolean error = false;
-    private int connectionLocks = 0;
-    private int locationLocks = 0;
+    private int connectionLocks = 0; //DEBUG
+    private int locationLocks = 0; //DEBUG
     private boolean parking = false;
 
-    //an empty List of Connections to call map.route with an empty list to avoid
-    /**
-     *
-     */
-    private List<Position> empty = new ArrayList<>();
+    private List<Position> empty = new ArrayList<>(); //used in run()
 
 
     /**
-     *
-     * @param trainSchedule
-     * @param recorder
-     * @param map
-     * @param trainService
+     * Constructor for class; called in Simulator
+     * @param trainSchedule  given in Simulator from an Array
+     * @param recorder given in Simulator
+     * @param map fom problem
+     * @param trainService that we inited in Simulator
      */
     public Train(TrainSchedule trainSchedule, Recorder recorder, Map map, TrainService trainService) {
         this.trainSchedule = trainSchedule;
@@ -48,7 +44,13 @@ public class Train extends Thread {
 
     }
 
-
+    /**
+     * Main run() method of our Train-Thread; engulfed in a try{}catch{} to grab any pesky Exceptions
+     * 1.get map.route; if possible try to reserve; if reservable drive()
+     * 2.if not possible to reserve - check why not; use this as the "avoid" in next map.route to get alternative route
+     * 3.check if alternative route is reservable; if not check why and run the map.route with new "avoid" on step 2.
+     * 4.if no alternative route is possible find a parking on route to dst and wait for it to be reservable
+     */
     public void run() {
         try {
             List<Connection> route;
@@ -57,44 +59,40 @@ public class Train extends Thread {
             while (true) {
                 route = map.route(currentLocation, trainSchedule.destination(), empty);
                 if (trainService.reserveRoute(route, currentLocation, id)) {
-                    connectionLocks += route.size();
-                    locationLocks += route.size() + 1;
+                    connectionLocks += route.size(); //DEBUG
+                    locationLocks += route.size() + 1; //DEBUG
                     //route was reserved
                     drive(route);
                 } else {
-                    //could not reserve whole route
-                    Collection<Position> alreadyTaken;
+                    //could not reserve whole route - need to check whats the problem and ask to reserve again
+                    Collection<Position> alreadyTaken = new LinkedList<Position>();
                     while(true) {
-                        alreadyTaken = trainService.getAlreadyTakenPosition(route, currentLocation, id);
-                        //update route
+                        alreadyTaken.addAll(trainService.getAlreadyTakenPosition(route, currentLocation, id));
+                        //update route to take the new "avoid" into account
                         route = map.route(currentLocation, trainSchedule.destination(), alreadyTaken);
                         if (route != null) {
                             //we found an alternative route
-                            if (trainService.reserveRoute(route, currentLocation, id)) {
-                                connectionLocks += route.size();
-                                locationLocks += route.size() + 1;
-                                drive(route);
+                            if (trainService.reserveRoute(route, currentLocation, id)) { //try to reserve from TrainService
+                                connectionLocks += route.size(); //DEBUG
+                                locationLocks += route.size() + 1; //DEBUG
+                                drive(route); //drive using the newly reserved route
                                 break;
                             }
-                        } else {
-                            break;
-                        }
-                    }
-                    if (route == null) {
-                        //there is no route without reserved parts
-                        route = map.route(currentLocation, trainSchedule.destination(), empty);
-                        //find nearest parking to destination
-                        route = findAndReserveParking(route);
-                        //beachte, route kann null sein, wenn zug bereits aufm parkplatz
-                        if (route != null) {
+                            //can't reserve route - try alreadyTaken again
+                        } else { // there's no route possible - break and go to next ParkingPlace Phase
+                            route = map.route(currentLocation, trainSchedule.destination(), empty);
+                            //find nearest parking to destination
+                            route = findAndReserveParking(route);
+                            //route will allways give back a possible route
                             trainService.waitingforReservedRoute(route, currentLocation, id);
                             connectionLocks += route.size();
                             locationLocks += route.size() + 1;
                             //assert(test == route.size() *2 + 1);
-                            drive(route);
-                         //   print("zum parkingh");
+                            drive(route); //finally we can drive to the parkingPlace!
+                            break;
                         }
                     }
+
                 }
 
                 if (currentLocation.equals(trainSchedule.destination())) {
@@ -110,13 +108,13 @@ public class Train extends Thread {
         }
         catch (Exception e) {
             e.printStackTrace();
-            error = true;
+            error = true; //for isError()
         }
     }
 
     /**
-     *
-     * @return
+     * used for catch{} in Simulator for Exceptions
+     * @return the local var error
      */
     public boolean isError() {
         return error;
@@ -125,9 +123,16 @@ public class Train extends Thread {
     //we leverage, that the route is sorted such that the first element is the first connection
     //from origin that has to be taken, and last element is the connection to the destination
 
-    //fahrt durch
 
     /**
+     * Get your motor running, get on the highway! looking for adventure - and whatever comes our way!
+     *
+     * We get a reserved route; including locations on the way and parking - if applicable
+     * if we resume form parking; and its not a station - call resume and unset flag
+     * iterate over route and call leave on current, free the current location,
+     * travel over connection arrive to next location and update current
+     * if last location is a station; we're supposed to park there - set flag and if not Station call pause
+     * finally unlock current location
      *
      * @param connections
      * @throws InterruptedException
@@ -170,53 +175,12 @@ public class Train extends Thread {
         locationLocks--;
     }
 
-    //finds the next parking, and reserves it, if it's no train station
-    //retourns the route without all connections from parking to destination
-    //ret null, if the train is already on the next parking
-
-    /**
-     *
-     * @param route
-     * @return
-     */
-  /*  private List <Connection> findAndReserveParking(List <Connection> route)  {
-        Location dest = this.trainSchedule.destination();
-        Location canPark;
-        //betrachte den fall, dass keine freie parkmöglichkeit auf strecke
-
-       // print("" + connections.size());
-        int i;
-        for(i = route.size()-1; i >= 0; i--) {
-
-            if(route.get(i).second() == dest) {
-                canPark = route.get(i).first();
-            }
-            else if(route.get(i).first() == dest) {
-                canPark = route.get(i).second();
-            }
-            else {
-                print("in findAndReserveParking, the connections do not drive to destination");
-                throw new IllegalStateException();
-            }
-            if(canPark.reserveParking()) {
-                //one parking was reserved or canPark is a train station
-                route.remove(i);
-                return route;
-            }
-            else {
-                dest = canPark;
-                route.remove(i);
-            }
-        }
-        return  null;
-    }
-*/
 
 
     /**
-     *
-     * @param route
-     * @return
+     * finds the next parking, and reserves it, if it's not a train station
+     * @param route on which we need to find parking
+     * @return the route without all connections from parking to destination, BUT null if the train is already on the next parking
      */
     private List <Connection> findAndReserveParking(List <Connection> route)  {
         Location current = currentLocation;

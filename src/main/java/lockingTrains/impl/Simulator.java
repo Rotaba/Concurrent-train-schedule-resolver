@@ -60,26 +60,30 @@ public class Simulator {
 	 * @return {@code true} if the simulation ran successfully.
 	 */
 	public static boolean run(final Problem problem, final Recorder recorder) {
-		// TODO Start your implementation here.
+		//get map and schedule from problem
 		List<TrainSchedule> schedules = problem.schedules();
 		Map map = problem.map();
+		//start a new TS and a new train array the size of schedule
 		TrainService trainService = new TrainService(map);
 		Train[] trains = new Train[schedules.size()];
-		
+		//init individual trains with the map and their corresponding schedule
 		for (int i = 0; i < schedules.size(); i++) {
 			trains[i] = new Train(schedules.get(i), recorder, map, trainService);
+			//start our train-threads
 			trains[i].start();
 			//	print("started one train "+ i);
 		}
+		//call .join() on each train to force Simulator to wait for all trains to finish
 		for (int i = 0; i < schedules.size(); i++) {
 			try {
 				trains[i].join();
 				if(trains[i].isError()) return false;
 			} catch (Exception e) {
-				print("simulation interrupted, who was this");
+				print("Simulation interrupted because of an Exception in train execution");
 				return false;
 			}
 		}
+		//when all trains finish from .join() we tell rc that we're done
 		recorder.done();
 		return true;
 	}

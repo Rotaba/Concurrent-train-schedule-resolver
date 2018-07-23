@@ -1,0 +1,13 @@
+Circle
+Top_Center->Bottom_Center
+Top_Center->Bottom_Center
+Bottom_Center->Top_Center
+Bottom_Center->Top_Center
+Left_Center->Right_Center
+Right_Center->Left_Center
+Left_Center->Right_Center
+Right_Center->Left_Center
+Right_Bottom->Left_Top
+Left_Bottom->Right_Top
+Left_Top->Right_Bottom
+Right_Bottom->Left_Top

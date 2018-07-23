@@ -48,8 +48,8 @@ public class Connection extends Position {
 	}
 
 	/**
-	 *
-	 * @return
+	 * Get lock of Connection
+	 * @return Lock of the Connection
 	 */
 	public Lock getLock() {
 		return lock;

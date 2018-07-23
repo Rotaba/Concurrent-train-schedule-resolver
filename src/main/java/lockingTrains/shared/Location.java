@@ -27,13 +27,12 @@ public class Location extends Position {
 		private final int value;
 
         /**
-         *
+         * current reserved parking places
          */
 		private int reservedParking;
 
 		private Capacity(final int value) {
 			this.value = value;
-			//this.reservedParking = 0;
 		}
 
 		/**
@@ -79,7 +78,7 @@ public class Location extends Position {
 		}
 
         /**
-         *
+         * get current parking counter
          * @return
          */
 		public int reservedParking() {
@@ -87,14 +86,14 @@ public class Location extends Position {
 		}
 
         /**
-         *
+         * add to parking counter
          */
 		public void reserve() {
 			reservedParking++;
 		}
 
         /**
-         *
+         * subtract from parking counter
          */
 		public void leave() {
 			reservedParking--;
@@ -131,16 +130,16 @@ public class Location extends Position {
 	}
 
     /**
-     *
-     * @return
+     * get Lock of the Location
+     * @return Lock of the Location
      */
 	public Lock getLock() {
 		return lock;
 	}
 
     /**
-     *
-     * @return
+     * Check if parking plce is reservable
+     * @return true if applicable, false if not reservable ; Stations always have parking place
      */
 	synchronized public boolean reserveParking()  {
 		if(isStation()) {
@@ -152,7 +151,6 @@ public class Location extends Position {
 			capacity.reserve();
 			return true;
 		} else if(capacity.value() == capacity.reservedParking()) {
-			//sadly no free parking possibility
 			return false;
 		} else {
 			System.out.println("unhandled if statement, ");
@@ -162,11 +160,9 @@ public class Location extends Position {
 
 
 
-	//we leverage here, that trains always start on a train station, so when this method is called, the train is
-    //whether on a station, or he previously called reserveParking()
 
     /**
-     *
+     * leave parking
      */
 	synchronized public void freeParking() {
 	    if(isStation()) return;
