@@ -1,6 +1,5 @@
 package lockingTrains.impl;
 
-import javafx.geometry.Pos;
 import lockingTrains.shared.*;
 import lockingTrains.shared.Map;
 import lockingTrains.validation.Recorder;
