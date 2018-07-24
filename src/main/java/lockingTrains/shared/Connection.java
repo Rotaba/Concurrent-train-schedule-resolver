@@ -1,6 +1,5 @@
 package lockingTrains.shared;
-
-import java.util.concurrent.locks.Lock;
+import java . util . concurrent . locks .Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -16,7 +15,18 @@ import java.util.concurrent.locks.ReentrantLock;
  * {@code A} and {@code B}, allowing two trains to travel between {@code A} and
  * {@code B} at the same time.
  */
-public class Connection extends Position {
+public class Connection extends Position implements Comparable<Connection>{ //for sort() over route
+
+
+	public int compareTo(Connection that) {
+		if (this.id() > that.id())
+			return -1;
+		else if (this.id() < that.id())
+			return 1;
+		else
+			return 0;
+	}
+
 	/**
 	 * Counts the instances to assign unique ID's to them.
 	 */
@@ -26,10 +36,7 @@ public class Connection extends Position {
 	private final Location second;
 	private final int time;
 	private final int id;
-	/**
-	 *
-	 */
-	private final Lock lock;
+
 
 	/**
 	 * Constructs a new connection.
@@ -44,15 +51,6 @@ public class Connection extends Position {
 		this.second = second;
 		this.time = time;
 		this.id = counter++;
-		lock = new ReentrantLock();
-	}
-
-	/**
-	 * Get lock of Connection
-	 * @return Lock of the Connection
-	 */
-	public Lock getLock() {
-		return lock;
 	}
 
 	/**

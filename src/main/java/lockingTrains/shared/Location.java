@@ -1,8 +1,6 @@
 package lockingTrains.shared;
 
 import java.util.NoSuchElementException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Representation of a map location. Locations can be categorized into one of
@@ -10,11 +8,21 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * <ol>
  * <li>station (infinite capacity; project description: Bahnhof)</li>
-	 * <li>crossing (capacity of 0; project description: Verbindungspunkt)</li>
+ * <li>crossing (capacity of 0; project description: Verbindungspunkt)</li>
  * <li>siding (finite positive capacity; project description: Knotenpunkt)</li>
  * </ol>
  */
-public class Location extends Position {
+public class Location extends Position implements Comparable<Location>{ //for sort() over route
+
+
+	public int compareTo(Location that) {
+		if (this.id() > that.id())
+			return -1;
+		else if (this.id() < that.id())
+			return 1;
+		else
+			return 0;
+	}
 	/**
 	 * Abstraction for representing capacities, including infinite ones.
 	 */
@@ -25,11 +33,6 @@ public class Location extends Position {
 		public static final Capacity INFINITE = new Capacity(-1);
 
 		private final int value;
-
-        /**
-         * current reserved parking places
-         */
-		private int reservedParking;
 
 		private Capacity(final int value) {
 			this.value = value;
@@ -76,28 +79,6 @@ public class Location extends Position {
 				throw new NoSuchElementException("Infinite capacity cannot have finite bound!");
 			return value;
 		}
-
-        /**
-         * get current parking counter
-         * @return
-         */
-		public int reservedParking() {
-			return reservedParking;
-		}
-
-        /**
-         * add to parking counter
-         */
-		public void reserve() {
-			reservedParking++;
-		}
-
-        /**
-         * subtract from parking counter
-         */
-		public void leave() {
-			reservedParking--;
-		}
 	}
 
 	/**
@@ -110,7 +91,8 @@ public class Location extends Position {
 	private final int x;
 	private final int y;
 	private final int id;
-	private final Lock lock;
+
+	private int parked;
 
 	/**
 	 * Constructs a new location.
@@ -126,48 +108,7 @@ public class Location extends Position {
 		this.x = x;
 		this.y = y;
 		this.id = counter++;
-		this.lock = new ReentrantLock();
-	}
-
-    /**
-     * get Lock of the Location
-     * @return Lock of the Location
-     */
-	public Lock getLock() {
-		return lock;
-	}
-
-    /**
-     * Check if parking plce is reservable
-     * @return true if applicable, false if not reservable ; Stations always have parking place
-     */
-	synchronized public boolean reserveParking()  {
-		if(isStation()) {
-		    return true;
-		}
-		if(capacity.value() == 0) {
-			return false;
-		} else if(capacity.value() > capacity.reservedParking()) {
-			capacity.reserve();
-			return true;
-		} else if(capacity.value() == capacity.reservedParking()) {
-			return false;
-		} else {
-			System.out.println("unhandled if statement, ");
-			throw new IllegalStateException();
-		}
-	}
-
-
-
-
-    /**
-     * leave parking
-     */
-	synchronized public void freeParking() {
-	    if(isStation()) return;
-	    if(capacity.value() == 0) return;
-	    capacity.leave();
+        this.parked = 0;
 	}
 
 	/**
@@ -187,6 +128,32 @@ public class Location extends Position {
 	public int capacity() {
 		return capacity.value();
 	}
+
+    /**
+     * has to be syncronized to avoid multiple trinas getting a hold of this at once
+     * @return true if parking has been reserved
+     */
+    public synchronized boolean hasParking(){
+        if(capacity.isInfinite()){
+            parked++;
+            return true;
+        }
+        else if(capacity() > parked){
+            parked++; //add a reservation to parking!
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
+    /**
+     * has to be syncronized to avoid multiple trinas getting a hold of this at once
+     * @return true if parking has been reserved
+     */
+    public synchronized void leaveParking(){
+        parked--;
+    }
 
 	/**
 	 * Get the x coordinate on the {@link Map}.
@@ -224,6 +191,11 @@ public class Location extends Position {
 	public boolean isStation() {
 		return capacity.isInfinite();
 	}
+
+    public boolean isParkable() {
+        return capacity.isInfinite() || (capacity.value > 0);
+    }
+
 
 	@Override
 	public String toString() {

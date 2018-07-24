@@ -1,245 +1,278 @@
 package lockingTrains.impl;
-
+import lockingTrains.validation.*;
 import lockingTrains.shared.*;
-import lockingTrains.shared.Map;
-import lockingTrains.validation.Recorder;
 
-import java.util.*;
+import java.awt.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-/**
- * The purpose of this class is to lock the route, when a train is asking for it.
- * And to unlock connections/locations
- */
+
 public class TrainService {
 
-    private TrainSchedule trainSchedule;
-    private Recorder recorder;
-    //map nicht synchronized
-    private Map map;
-    private Location currentLocation;
-    private Connection currentConnection;
-    private LinkedList<Connection> route;
-    private List<Connection> allConnections;
-    private List<Location> allLocations;
-    private int firstConnectionId;
-    private int firstLocationId;
-    private Lock lock = new ReentrantLock();
-    private Condition waitingRouteFree = lock.newCondition();
-    private static int counter = 0;
-    private int sleeping;
-    private int finished;
-
+    public Map map;
 
     public TrainService(Map map){
-        this.allConnections = map.connections();
-        this.allLocations = map.locations();
-        this.firstConnectionId = allConnections.get(0).id();
-        this.firstLocationId = allLocations.get(0).id();
-
-        this.sleeping = 0;
-        this.finished = 0;
+        this.map = map;
     }
 
-    synchronized void setFinished() {
-        finished ++;
-    }
-
-    /**
-     * Can be run by multiple Threads! i.e. Trains may ask to reserve routes while others are tyring aswell
-     * On secessful reserve will lokc all connections and locations on the route
-     * @param connections of the asked route
-     * @param currentLocation of the asking Train
-     * @param id of the askin train (debugging info)
-     * @return True; reserved and locked, false; couldn't lock one of the Conn/Loc on the route
-     */
-    boolean reserveRoute(List <Connection> connections, Location currentLocation, int id){
-        List <Connection> alreadyReservedConnection = new LinkedList<>();
-        List <Location> alreadyReservedLocation = new LinkedList<>();
-        List <Location> locationsToReserve = locationsOnRoute(connections, currentLocation);
-
-        int[] connectionsIds = new int[connections.size()];
-        int[] locationIds = new int[locationsToReserve.size()];
-        int i = 0;
-        for(Connection c : connections) {
-            connectionsIds[i] = c.id();
-            i++;
-        }
-
-        i = 0;
-        for(Location l : locationsToReserve) {
-            locationIds[i] = l.id();
-            i++;
-        }
-        Arrays.sort(connectionsIds);
-        Arrays.sort(locationIds);
-
-        for(i = 0; i < connectionsIds.length; i++) {
-            if(allConnections.get(connectionsIds[i]-firstConnectionId).getLock().tryLock()){
-                alreadyReservedConnection.add(allConnections.get(connectionsIds[i]-firstConnectionId));
-            }
-            else {
-                for(Connection c : alreadyReservedConnection) {
-                    c.getLock().unlock();
+    //find and reserve closest parking
+    public Location findReserveParking(int id, List<Connection> route, Location current, Location destination){     //TODO well I need to check for parkings on the shortest route
+        System.out.println(id + " wants to park on " + route.toString() + " starting in " + current);
+        Location marker = destination;
+        //Collections.sort(route); //TODO fighting over parking could also result in the ABC BCD over CB problem
+        for (int i = route.size()-1; i >= 0; i--){ //-1 to ignore last connection?
+            Connection c = route.get(i); //get last connection
+            if (c.first() == marker){
+                if (c.second().isParkable() && c.second() != current && c.second().hasParking()){ //we found parking!
+                        return c.second();
                 }
-                return false;
-            }
-        }
-        for(i = 0; i < locationIds.length; i++) {
-            if(allLocations.get(locationIds[i]-firstLocationId).getLock().tryLock()){
-                alreadyReservedLocation.add(allLocations.get(locationIds[i]-firstLocationId));
-            }
-            else {
-                for(Connection c : alreadyReservedConnection) {
-                    c.getLock().unlock();
+                else{ //not parkable!
+                    marker = c.second();
                 }
-                for(Location l : alreadyReservedLocation) {
-                    l.getLock().unlock();
+            }
+            else{ /// (c.first() != destination){
+                if (c.first().isParkable() && c.first() != current && c.first().hasParking()){ //we found parking!
+                    return c.first();
                 }
-                return false;
+                else{
+                    marker = c.first();
+                }
+
             }
+
         }
-        return true;
+        return destination; //if no parking found on route; return the final destiantion
     }
 
 
-    /**
-     * Lets a train, after being denied a reservation on route, to inquire which Positions are locked
-     * to be used in the avoid on scucsessive map.route() calls
-     * @param route The asked route; which was not reserved becasue of an already locked Position
-     * @param id of calling train (debugging info)
-     * @return List of Positions which couldn't be locked; to be used in the avoid b Train to recalculate the route again
-     *
-     */
-
-    Collection<Position> getAlreadyTakenPosition(List<Connection> route, Location currentLocation, int id) {
-        List <Position> avoid = new LinkedList<>();
-        List <Location> locationsToReserve = locationsOnRoute(route, currentLocation);
-
-        int[] connectionsIds = new int[route.size()];
-        int[] locationIds = new int[locationsToReserve.size()];
-
-        int i = 0;
-        for(Connection c : route) {
-            connectionsIds[i] = c.id();
-            i++;
+    //route that we get form map is not ordered to match origin starting point; we have to sort it before we travel this route
+    public List<Connection> sortroute(List<Connection> input, Location current){
+        //System.out.println("ts sortroute given route " + route.toString() + " with start at " + current.toString());
+        List<Connection> result = new LinkedList<Connection>();
+        List<Connection> route = new LinkedList<Connection>();
+        for (Connection c: input){
+            route.add(c);
         }
-
-        i = 0;
-        for(Location l : locationsToReserve) {
-            locationIds[i] = l.id();
-            i++;
-        }
-        Arrays.sort(connectionsIds);
-        Arrays.sort(locationIds);
-
-        //first all connections
-        for(i = 0; i < connectionsIds.length; i++) {
-            if(allConnections.get(connectionsIds[i]-firstConnectionId).getLock().tryLock()){
-                allConnections.get(connectionsIds[i]-firstConnectionId).getLock().unlock();
-            }
-            else {
-                avoid.add(allConnections.get(connectionsIds[i]-firstConnectionId));
+        Location marker = current;
+        while(!route.isEmpty()){
+            for (Connection c : route){
+                if (c.first() == marker){
+                    result.add(c);
+                    marker  = c.second();
+                    route.remove(c);
+                    break;
+                }
+                if(c.second() == marker) {
+                    result.add(c);
+                    marker  = c.first();
+                    route.remove(c);
+                    break;
+                }
             }
         }
-
-        //then all locations
-        for(i = 0; i < locationIds.length; i++) {
-            if(allLocations.get(locationIds[i]-firstLocationId).getLock().tryLock()){
-                allLocations.get(locationIds[i]-firstLocationId).getLock().unlock();
-            }
-            else {
-                avoid.add(allLocations.get(locationIds[i]-firstLocationId));
-            }
-        }
-        return avoid;
+        //System.out.println("ts sortroute output route " + result.toString() + " with start at " + current.toString());
+        return result;
     }
 
 
-    /**
-     * Converts a connection route intro a Location list
-     * @param route the inquired connection route
-     * @param currentLocation of asking train
-     * @return a List of locations corresponding to the given route
-     */
-    private List<Location> locationsOnRoute(List<Connection> route, Location currentLocation) {
-        List <Location> locationsToReserve = new LinkedList<>();
-        Location location = currentLocation;
-        locationsToReserve.add(location);
-        for(Connection c : route) {
-            if(c.first().equals(location)) {
-                location = c.second();
+    //reserve route; null if possible, else return Connections to avoid
+    //todo what if its a Location that is the problem? what do I return to Train then? (not the connection to avoid; but the location?)
+    public Connection reserve(List<Connection> route, Location current, int id){  //todo ROMAN: do we want synchronized or parallel on this method?
+        //Connection conMark = route.get(0);
+        Collections.sort(route); //sorted list by id
+
+        Connection problem = null;
+        List<Position> thusFarConn = new LinkedList<Position>();
+        //try to lock route over Connections
+        //TODO have to reserve based on list to avoid the ABC BCE fighting over BC problem
+        for(Connection c : route){ //could have done it over Position if we remade the list to include Loc and Conn -but heck it
+            if(c.getLock().tryLock()){ //can't lock; revert-unlock what we lock thus far
+                System.out.println(id + " has locked " + c.toString());
+                thusFarConn.add(c);
             }
-            else if (c.second().equals(location)) {
-                location = c.first();
+            else{
+                System.out.println(id + " cant lock " + c.toString() + " because " + c.getLock().toString());
+                System.out.println(id + " reverting the lock on " + thusFarConn.toString());//)
+                 revertLocks(thusFarConn, id);
+                 problem = c;
+                 return problem;
             }
-            else print ("something went wront");
-            locationsToReserve.add(location);
+            //else we got that lock!
+
+            //go next element
         }
-        return locationsToReserve;
+
+        //whole route Connections are LOCKED
+
+        List<Location> locFromConn = routeToLocation(id, route, current);
+        Collections.sort(locFromConn);//sorted list by id
+        List<Position> thusFarLoc = new LinkedList<Position>();;
+        Location marker = current;
+        //whole Conn route is booked; now to Location
+        for(Location c : locFromConn){ //could have done it over Position if we remade the list to include Loc and Conn -but hackit
+            if(c.getLock().tryLock()) { //can't lock; revert-unlock what we lock thus far
+                System.out.println(id + " has locked " + c.toString()); //"did I really lock it? connection " + c.toString() + " is " + c.getLock());
+                thusFarLoc.add(c);
+                marker = c;
+            }
+            else{
+                problem = loc2Problem(c, sortroute(route, current), marker); //TODO PLACE HOLDER!
+                System.out.println(id + " cant lock " + c.toString() + " because " + c.getLock().toString());
+                System.out.println(id + " reverting the lock on " + thusFarLoc.toString() + " and " + thusFarConn.toString());//)
+                System.out.println(id + " becasue coming from " + marker.toString() + "and cant lock " + c.toString() + " resulting in: " + problem.toString());
+                //revert those locked locations
+                revertLocks(thusFarLoc, id);
+                //AND THE CONNECTIONS THAT WE LOCKED!
+                revertLocks(thusFarConn, id);
+                //problem = null; //todo ROMAN: I can't deduce a connection based only on Locked Locations; the llist is not sorted by route; WHEN pascal gets the search to work i'll give back a Location in my problem - until then just break with a null in problem
+
+                return problem;
+                //todo what if its a Location that is the problem? what do I return to Train then? (not the connection to avoid; but the location?)
+                //TODO I CANT RETURN NULL HERE! FK
+            }
+            //else we got that lock!
+            //c.getLock().lock();
+
+        }
+        //Reservation taken! knock yourself out Train!
+        System.out.println(id + " reserved the route " + route.toString());
+        return null;
+    }
+
+    //get Position list and unlock all of them
+    public void revertLocks(List<Position> posList, int id) {
+        for (Position p : posList) {
+            System.out.println(id + " unlocking " + p.toString());
+            p.getLock().unlock();
+        }
+    }
+
+    //beacsue Pascal is still wokring on the script to return a new route based on LOCATION (adn not only connection) we have to compute a "problematic" connection based on a problematic location
+    public Connection loc2Problem(Location l, List<Connection> route, Location prev){
+        for(Connection c : route){
+            if (c.first() == l && c.second() == prev){
+                return c;
+            }
+            else if(c.second() == l && c.first() == prev){
+                    return c;
+            }
+            else{
+                //do nothing...
+            }
+        }
+        System.out.println("I cant find the problematic connection to avoid! return first ");
+        return route.get(route.size() - 1); //if he doesnt find any.. whihc is unplausible
     }
 
 
-    /**
-     * Unlock a connection and singal to sleeping thread
-     * @param connection on which we call the unlock
-     * @param id of calling train (debugging info)
-     */
-    void freeConnection(Connection connection, int id) {
-        connection.getLock().unlock();
-        //we need notifyAll here, because we do not know which connection will be freed, and
-        //which other train does need this freed connection.
-        lock.lock();
-        waitingRouteFree.signalAll();
-        lock.unlock();
+    //gives back a location list based ona connection list; for locking
+    public List<Location> routeToLocation(int id, List<Connection> input, Location current) {
+        List<Location> result = new LinkedList<Location>();
+        System.out.println(id + " on routeToLocation given route: " + input.toString());
+
+
+        result.add(current);
+        List<Connection> dummy = new LinkedList<Connection>();
+        for (Connection c : input){
+            dummy.add(c);
+        }
+
+        Location marker = current;
+        while (!dummy.isEmpty()){
+            for(Connection c: dummy){
+                if (c.first() == marker){
+                    result.add(c.second());
+                    dummy.remove(c);
+                    marker = c.second();
+                    break;
+                }
+                if (c.second() == marker){
+                    result.add(c.first());
+                    dummy.remove(c);
+                    marker = c.first();
+                    break;
+                }
+            }
+        }
+
+
+//        result.add(current);
+//        for (Connection c : input) {
+//            if(current == c.first()){
+//                result.add(c.second());
+//                current = c.second();
+//            }
+//            else{ //(current != c.first()){
+//                result.add(c.first());
+//                current = c.first();
+//            }
+//        }
+
+
+        System.out.println(id + " gets routeToLocation result: " + result.toString());
+        return result;
     }
 
+    protected final Lock waitLock = new ReentrantLock();
+    private final Condition unlocked = waitLock.newCondition();
 
-    /**
-     * Unlock a Location and singal to sleeping thread
-     * @param location on which we call the unlock
-     * @param id of calling train (debugging info)
-     */
-    void freeLocation(Location location, int id) {
+    //TRYING TO KEEP TRAKC OF TRAINS DONE
+    int trainsDone = 0;
+    //keep track of how many trains finished
+    public void finished(TrainSchedule trainSchedule){
+        //System.out.println("Final Location: " + trainSchedule.destination().toString() + " is locked? : " + trainSchedule.destination().getLock());
+        //trainSchedule.destination().getLock().unlock(); //done now in drive()
+        trainsDone++;
+    }
+
+    public int getDone(){
+        return trainsDone;
+    }
+
+    public void leave(final TrainSchedule schedule, final Location location){
+        System.out.println(schedule.id() + " is leaving Location: " + location.toString() + " is locked? : " + location.getLock());
         location.getLock().unlock();
-        lock.lock();
-        waitingRouteFree.signalAll();
-        lock.unlock();
-      ;
+        sigMethod();
     }
 
-    /**
-     * When a train is unable to reserve a route to a parking place; it would use the waitingRouteFree condition to wait
-     * wait signal comes from any Conn/Loc unlock
-     * @param connections that the train wants to reserve
-     * @param currentLocation of calling train
-     * @param id of calling train (debugging info)
-     * @throws InterruptedException caused by the await
-     */
-    void waitingforReservedRoute(List <Connection> connections, Location currentLocation, int id)
-            throws InterruptedException {
+    public void travel(final TrainSchedule schedule, final Connection section){
+        System.out.println(schedule.id() + " travels over Connection: " + section.toString() + " is locked? : " + section.getLock());
+        section.getLock().unlock();
+        sigMethod();
+    }
 
-        while(!reserveRoute(connections, currentLocation, id)){
-            lock.lock();
-            sleeping ++;
-            waitingRouteFree.await(10, TimeUnit.MILLISECONDS);
-            lock.unlock();
 
+    public void waitForReserve(List<Connection> route, Location current, int id) throws InterruptedException {
+        waitLock.lock();
+        try{
+            while(reserve(route, current, id) != null){
+                unlocked.await();
+            }
         }
-        lock.lock();
-        sleeping--;
-        lock.unlock();
+        catch(InterruptedException e){
+            waitLock.unlock();
+            //id.isError();// = true;
+        }
+        waitLock.unlock();
 
     }
 
-
-
-    //DEBUG
-    synchronized void print (String str) {
-        System.out.println(str);
+    public void sigMethod() {
+        waitLock.lock();
+        try {
+            unlocked.signalAll();
+        } catch (Exception e) {
+            waitLock.unlock();
+        }
+        waitLock.unlock();
+//        waitLock.lock();
+//        unlocked.signalAll();
+//        waitLock.unlock();
     }
-
 }
