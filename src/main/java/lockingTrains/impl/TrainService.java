@@ -2,7 +2,6 @@ package lockingTrains.impl;
 
 import lockingTrains.shared.*;
 import lockingTrains.shared.Map;
-import lockingTrains.validation.Recorder;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -16,22 +15,12 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class TrainService {
 
-    private TrainSchedule trainSchedule;
-    private Recorder recorder;
-    //map nicht synchronized
-    private Map map;
-    private Location currentLocation;
-    private Connection currentConnection;
-    private LinkedList<Connection> route;
     private List<Connection> allConnections;
     private List<Location> allLocations;
     private int firstConnectionId;
     private int firstLocationId;
     private Lock lock = new ReentrantLock();
     private Condition waitingRouteFree = lock.newCondition();
-    private static int counter = 0;
-    private int sleeping;
-    private int finished;
 
 
     public TrainService(Map map){
@@ -39,60 +28,62 @@ public class TrainService {
         this.allLocations = map.locations();
         this.firstConnectionId = allConnections.get(0).id();
         this.firstLocationId = allLocations.get(0).id();
-
-        this.sleeping = 0;
-        this.finished = 0;
     }
 
-    synchronized void setFinished() {
-        finished ++;
-    }
 
     /**
      * Can be run by multiple Threads! i.e. Trains may ask to reserve routes while others are tyring aswell
-     * On secessful reserve will lokc all connections and locations on the route
+     * On success reserve will lock all connections and locations on the route
      * @param connections of the asked route
      * @param currentLocation of the asking Train
-     * @param id of the askin train (debugging info)
+     * @param id of the asking train (debugging info)
      * @return True; reserved and locked, false; couldn't lock one of the Conn/Loc on the route
      */
     boolean reserveRoute(List <Connection> connections, Location currentLocation, int id){
         List <Connection> alreadyReservedConnection = new LinkedList<>();
         List <Location> alreadyReservedLocation = new LinkedList<>();
+        //get all locations on the route
         List <Location> locationsToReserve = locationsOnRoute(connections, currentLocation);
 
         int[] connectionsIds = new int[connections.size()];
         int[] locationIds = new int[locationsToReserve.size()];
         int i = 0;
+        //get all ids of the asked connections
         for(Connection c : connections) {
             connectionsIds[i] = c.id();
             i++;
         }
 
         i = 0;
+        //get all ids for the asked locations
         for(Location l : locationsToReserve) {
             locationIds[i] = l.id();
             i++;
         }
+        //sort the ids in ascending order
         Arrays.sort(connectionsIds);
         Arrays.sort(locationIds);
 
+        //try to lock all connections on the route in ascencding order of their ids
         for(i = 0; i < connectionsIds.length; i++) {
             if(allConnections.get(connectionsIds[i]-firstConnectionId).getLock().tryLock()){
                 alreadyReservedConnection.add(allConnections.get(connectionsIds[i]-firstConnectionId));
             }
             else {
+                //when one reservation fails, unlock all and return
                 for(Connection c : alreadyReservedConnection) {
                     c.getLock().unlock();
                 }
                 return false;
             }
         }
+        //try to lock all locations on the route in ascencding order of their ids
         for(i = 0; i < locationIds.length; i++) {
             if(allLocations.get(locationIds[i]-firstLocationId).getLock().tryLock()){
                 alreadyReservedLocation.add(allLocations.get(locationIds[i]-firstLocationId));
             }
             else {
+                //when one reservation fails, unlock all and return
                 for(Connection c : alreadyReservedConnection) {
                     c.getLock().unlock();
                 }
@@ -117,18 +108,21 @@ public class TrainService {
 
     Collection<Position> getAlreadyTakenPosition(List<Connection> route, Location currentLocation, int id) {
         List <Position> avoid = new LinkedList<>();
+        //get all locations on route
         List <Location> locationsToReserve = locationsOnRoute(route, currentLocation);
 
         int[] connectionsIds = new int[route.size()];
         int[] locationIds = new int[locationsToReserve.size()];
 
         int i = 0;
+        //get all ids
         for(Connection c : route) {
             connectionsIds[i] = c.id();
             i++;
         }
 
         i = 0;
+        //get all ids
         for(Location l : locationsToReserve) {
             locationIds[i] = l.id();
             i++;
@@ -139,9 +133,11 @@ public class TrainService {
         //first all connections
         for(i = 0; i < connectionsIds.length; i++) {
             if(allConnections.get(connectionsIds[i]-firstConnectionId).getLock().tryLock()){
+                //free the connections, when it is not taken and you got the lock
                 allConnections.get(connectionsIds[i]-firstConnectionId).getLock().unlock();
             }
             else {
+                //else rememnber
                 avoid.add(allConnections.get(connectionsIds[i]-firstConnectionId));
             }
         }
@@ -149,9 +145,11 @@ public class TrainService {
         //then all locations
         for(i = 0; i < locationIds.length; i++) {
             if(allLocations.get(locationIds[i]-firstLocationId).getLock().tryLock()){
+                //free the location, if you get the lock and its not taken
                 allLocations.get(locationIds[i]-firstLocationId).getLock().unlock();
             }
             else {
+                //else remember
                 avoid.add(allLocations.get(locationIds[i]-firstLocationId));
             }
         }
@@ -176,7 +174,7 @@ public class TrainService {
             else if (c.second().equals(location)) {
                 location = c.first();
             }
-            else print ("something went wront");
+            else print ("something went wrong");
             locationsToReserve.add(location);
         }
         return locationsToReserve;
@@ -208,7 +206,6 @@ public class TrainService {
         lock.lock();
         waitingRouteFree.signalAll();
         lock.unlock();
-      ;
     }
 
     /**
@@ -224,21 +221,16 @@ public class TrainService {
 
         while(!reserveRoute(connections, currentLocation, id)){
             lock.lock();
-            sleeping ++;
             waitingRouteFree.await(10, TimeUnit.MILLISECONDS);
             lock.unlock();
 
         }
-        lock.lock();
-        sleeping--;
-        lock.unlock();
 
     }
 
 
-
     //DEBUG
-    synchronized void print (String str) {
+    private synchronized void print (String str) {
         System.out.println(str);
     }
 

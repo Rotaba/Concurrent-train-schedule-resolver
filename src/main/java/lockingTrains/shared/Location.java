@@ -79,7 +79,7 @@ public class Location extends Position {
 
         /**
          * get current parking counter
-         * @return
+         * @return number of already reserved parkings
          */
 		public int reservedParking() {
 			return reservedParking;

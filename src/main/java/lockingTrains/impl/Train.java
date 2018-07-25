@@ -9,7 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- *
+ * our trains which extend thread
  */
 public class Train extends Thread {
     private final TrainSchedule trainSchedule;
@@ -20,8 +20,6 @@ public class Train extends Thread {
     private final int id;
     private static int counter = 0; //DEBUG
     private boolean error = false;
-    private int connectionLocks = 0; //DEBUG
-    private int locationLocks = 0; //DEBUG
     private boolean parking = false;
 
     private List<Position> empty = new ArrayList<>(); //used in run()
@@ -29,10 +27,10 @@ public class Train extends Thread {
 
     /**
      * Constructor for class; called in Simulator
-     * @param trainSchedule  given in Simulator from an Array
-     * @param recorder given in Simulator
-     * @param map fom problem
-     * @param trainService that we inited in Simulator
+     * @param trainSchedule  the trainSchedule
+     * @param recorder shared among all trains
+     * @param map needed to compute route
+     * @param trainService shared among all trains
      */
     public Train(TrainSchedule trainSchedule, Recorder recorder, Map map, TrainService trainService) {
         this.trainSchedule = trainSchedule;
@@ -55,17 +53,15 @@ public class Train extends Thread {
         try {
             List<Connection> route;
             recorder.start(trainSchedule);
-            currentLocation.reserveParking();
+            currentLocation.reserveParking(); //because the project definition says, we have to free the location
             while (true) {
                 route = map.route(currentLocation, trainSchedule.destination(), empty);
                 if (trainService.reserveRoute(route, currentLocation, id)) {
-                    connectionLocks += route.size(); //DEBUG
-                    locationLocks += route.size() + 1; //DEBUG
                     //route was reserved
                     drive(route);
                 } else {
                     //could not reserve whole route - need to check whats the problem and ask to reserve again
-                    Collection<Position> alreadyTaken = new LinkedList<Position>();
+                    Collection<Position> alreadyTaken = new LinkedList<>();
                     while(true) {
                         alreadyTaken.addAll(trainService.getAlreadyTakenPosition(route, currentLocation, id));
                         //update route to take the new "avoid" into account
@@ -73,21 +69,17 @@ public class Train extends Thread {
                         if (route != null) {
                             //we found an alternative route
                             if (trainService.reserveRoute(route, currentLocation, id)) { //try to reserve from TrainService
-                                connectionLocks += route.size(); //DEBUG
-                                locationLocks += route.size() + 1; //DEBUG
                                 drive(route); //drive using the newly reserved route
                                 break;
                             }
                             //can't reserve route - try alreadyTaken again
+
                         } else { // there's no route possible - break and go to next ParkingPlace Phase
                             route = map.route(currentLocation, trainSchedule.destination(), empty);
                             //find nearest parking to destination
                             route = findAndReserveParking(route);
-                            //route will allways give back a possible route
+                            //reserveParking will always give back a possible route
                             trainService.waitingforReservedRoute(route, currentLocation, id);
-                            connectionLocks += route.size();
-                            locationLocks += route.size() + 1;
-                            //assert(test == route.size() *2 + 1);
                             drive(route); //finally we can drive to the parkingPlace!
                             break;
                         }
@@ -96,12 +88,7 @@ public class Train extends Thread {
                 }
 
                 if (currentLocation.equals(trainSchedule.destination())) {
-                  //  print(connectionLocks + " locks " + locationLocks);
-                    assert (connectionLocks == 0);
-                    assert (0 == locationLocks);
-                  //  print("finished event");
                     recorder.finish(trainSchedule);
-                    trainService.setFinished();
                     return;
                 }
             }
@@ -120,9 +107,6 @@ public class Train extends Thread {
         return error;
     }
 
-    //we leverage, that the route is sorted such that the first element is the first connection
-    //from origin that has to be taken, and last element is the connection to the destination
-
 
     /**
      * Get your motor running, get on the highway! looking for adventure - and whatever comes our way!
@@ -134,8 +118,8 @@ public class Train extends Thread {
      * if last location is a station; we're supposed to park there - set flag and if not Station call pause
      * finally unlock current location
      *
-     * @param connections
-     * @throws InterruptedException
+     * @param connections the route to drive, it is never {@code null}
+     * @throws InterruptedException when interrupted while travelling
      */
     private void drive(List <Connection> connections) throws InterruptedException {
         currentLocation.freeParking();
@@ -149,7 +133,6 @@ public class Train extends Thread {
             c = connections.remove(0);
             recorder.leave(trainSchedule, currentLocation);
             trainService.freeLocation(currentLocation, id);
-            locationLocks--;
             recorder.travel(trainSchedule, c);
             c.travel();
             if(c.first().equals(currentLocation)) {
@@ -165,22 +148,20 @@ public class Train extends Thread {
                 throw new IllegalStateException();
             }
             trainService.freeConnection(c, id);
-            connectionLocks--;
         }
         if(!currentLocation.isStation()) {
             recorder.pause(trainSchedule, currentLocation);
             parking = true;
         }
         trainService.freeLocation(currentLocation, id);
-        locationLocks--;
     }
 
 
 
     /**
-     * finds the next parking, and reserves it, if it's not a train station
+     * finds the next parking, and reserves it
      * @param route on which we need to find parking
-     * @return the route without all connections from parking to destination, BUT null if the train is already on the next parking
+     * @return the route to parking
      */
     private List <Connection> findAndReserveParking(List <Connection> route)  {
         Location current = currentLocation;
