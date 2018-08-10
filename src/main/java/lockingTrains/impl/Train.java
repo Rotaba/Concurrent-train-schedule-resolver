@@ -55,6 +55,10 @@ public class Train extends Thread {
             recorder.start(trainSchedule);
             currentLocation.reserveParking(); //because the project definition says, we have to free the location
             while (true) {
+                if (currentLocation.equals(trainSchedule.destination())) {
+                    recorder.finish(trainSchedule);
+                    return;
+                }
                 route = map.route(currentLocation, trainSchedule.destination(), empty);
                 if (trainService.reserveRoute(route, currentLocation, id)) {
                     //route was reserved
@@ -87,10 +91,6 @@ public class Train extends Thread {
 
                 }
 
-                if (currentLocation.equals(trainSchedule.destination())) {
-                    recorder.finish(trainSchedule);
-                    return;
-                }
             }
         }
         catch (Exception e) {

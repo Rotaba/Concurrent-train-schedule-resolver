@@ -19,7 +19,7 @@ public class TrainService {
     private List<Location> allLocations;
     private int firstConnectionId;
     private int firstLocationId;
-  //  private Lock lock = new ReentrantLock();
+    private Lock lock = new ReentrantLock();
   //  private Condition waitingRouteFree = lock.newCondition();
 
 
@@ -218,12 +218,13 @@ public class TrainService {
      */
     void waitingforReservedRoute(List <Connection> connections, Location currentLocation, int id)
             throws InterruptedException {
+        lock.lock();
 
         reserveRoute2(connections, currentLocation, id);
          //   lock.lock();
           //  waitingRouteFree.await(10, TimeUnit.MILLISECONDS);
          //   lock.unlock();
-
+        lock.unlock();
 
 
     }
