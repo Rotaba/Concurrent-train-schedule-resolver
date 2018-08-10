@@ -1,12 +1,14 @@
 package lockingTrains.mapTests;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -64,7 +66,7 @@ class MapTest {
 			for (final File problemFile : problems.get(mapName)) {
 				dynamicTests.add(DynamicTest.dynamicTest("Problem " + problemFile.getName(), () -> {
 					final var problem = Parser.parse(mapFile, problemFile);
-					assertTrue(Simulator.run(problem, new Validator(problem)));
+					assertTrue(assertTimeoutPreemptively(Duration.ofSeconds(30), () -> Simulator.run(problem, new Validator(problem))));
 				}));
 			}
 		}
