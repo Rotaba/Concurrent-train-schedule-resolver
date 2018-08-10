@@ -19,8 +19,8 @@ public class TrainService {
     private List<Location> allLocations;
     private int firstConnectionId;
     private int firstLocationId;
-    private Lock lock = new ReentrantLock();
-    private Condition waitingRouteFree = lock.newCondition();
+  //  private Lock lock = new ReentrantLock();
+  //  private Condition waitingRouteFree = lock.newCondition();
 
 
     public TrainService(Map map){
@@ -190,9 +190,9 @@ public class TrainService {
         connection.getLock().unlock();
         //we need notifyAll here, because we do not know which connection will be freed, and
         //which other train does need this freed connection.
-        lock.lock();
-        waitingRouteFree.signalAll();
-        lock.unlock();
+  //      lock.lock();
+   //     waitingRouteFree.signalAll();
+     //   lock.unlock();
     }
 
 
@@ -203,9 +203,9 @@ public class TrainService {
      */
     void freeLocation(Location location, int id) {
         location.getLock().unlock();
-        lock.lock();
-        waitingRouteFree.signalAll();
-        lock.unlock();
+ //       lock.lock();
+ //       waitingRouteFree.signalAll();
+  //      lock.unlock();
     }
 
     /**
@@ -219,15 +219,52 @@ public class TrainService {
     void waitingforReservedRoute(List <Connection> connections, Location currentLocation, int id)
             throws InterruptedException {
 
-        while(!reserveRoute(connections, currentLocation, id)){
-            lock.lock();
-            waitingRouteFree.await(10, TimeUnit.MILLISECONDS);
-            lock.unlock();
+        reserveRoute2(connections, currentLocation, id);
+         //   lock.lock();
+          //  waitingRouteFree.await(10, TimeUnit.MILLISECONDS);
+         //   lock.unlock();
 
-        }
+
 
     }
 
+    boolean reserveRoute2(List <Connection> connections, Location currentLocation, int id){
+        List <Connection> alreadyReservedConnection = new LinkedList<>();
+        List <Location> alreadyReservedLocation = new LinkedList<>();
+        //get all locations on the route
+        List <Location> locationsToReserve = locationsOnRoute(connections, currentLocation);
+
+        int[] connectionsIds = new int[connections.size()];
+        int[] locationIds = new int[locationsToReserve.size()];
+        int i = 0;
+        //get all ids of the asked connections
+        for(Connection c : connections) {
+            connectionsIds[i] = c.id();
+            i++;
+        }
+
+        i = 0;
+        //get all ids for the asked locations
+        for(Location l : locationsToReserve) {
+            locationIds[i] = l.id();
+            i++;
+        }
+        //sort the ids in ascending order
+        Arrays.sort(connectionsIds);
+        Arrays.sort(locationIds);
+
+        //try to lock all connections on the route in ascencding order of their ids
+        for(i = 0; i < connectionsIds.length; i++) {
+            allConnections.get(connectionsIds[i]-firstConnectionId).getLock().lock();
+
+        }
+        //try to lock all locations on the route in ascencding order of their ids
+        for(i = 0; i < locationIds.length; i++) {
+            allLocations.get(locationIds[i]-firstLocationId).getLock().lock();
+
+        }
+        return true;
+    }
 
     //DEBUG
     private synchronized void print (String str) {
