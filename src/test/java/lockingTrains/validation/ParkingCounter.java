@@ -1,10 +1,16 @@
 package lockingTrains.validation;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import lockingTrains.shared.Connection;
 import lockingTrains.shared.Location;
 import lockingTrains.shared.TrainSchedule;
 
-public class ExceptionRecorder extends Recorder {
+public class ParkingCounter extends Recorder {
+	private final Map<Integer, Integer> pauseCalls = new HashMap<>();
+	private final Map<Integer, Integer> resumeCalls = new HashMap<>();
+
 	@Override
 	public void start(final TrainSchedule schedule) {
 	}
@@ -23,12 +29,10 @@ public class ExceptionRecorder extends Recorder {
 
 	@Override
 	public void travel(final TrainSchedule schedule, final Connection section) {
-		throw new IllegalStateException();
 	}
 
 	@Override
 	void travel(final long timestamp, final TrainSchedule schedule, final Connection section) {
-		throw new IllegalStateException();
 	}
 
 	@Override
@@ -40,19 +44,31 @@ public class ExceptionRecorder extends Recorder {
 	}
 
 	@Override
-	public void pause(final TrainSchedule schedule, final Location location) {
+	public synchronized void pause(final TrainSchedule schedule, final Location location) {
+		pause(System.currentTimeMillis(), schedule, location);
 	}
 
 	@Override
 	void pause(final long timestamp, final TrainSchedule schedule, final Location location) {
+		var old = pauseCalls.get(location.id());
+		if (old == null)
+			old = 0;
+
+		pauseCalls.put(location.id(), old + 1);
 	}
 
 	@Override
-	public void resume(final TrainSchedule schedule, final Location location) {
+	public synchronized void resume(final TrainSchedule schedule, final Location location) {
+		resume(System.currentTimeMillis(), schedule, location);
 	}
 
 	@Override
 	void resume(final long timestamp, final TrainSchedule schedule, final Location location) {
+		var old = resumeCalls.get(location.id());
+		if (old == null)
+			old = 0;
+
+		resumeCalls.put(location.id(), old + 1);
 	}
 
 	@Override
@@ -65,11 +81,19 @@ public class ExceptionRecorder extends Recorder {
 
 	@Override
 	public void done() {
-		throw new IllegalStateException();
 	}
 
 	@Override
 	void done(final long timestamp) {
-		throw new IllegalStateException();
+	}
+
+	public synchronized int pauseCalls(final Location location) {
+		final var calls = pauseCalls.get(location.id());
+		return calls == null ? -1 : calls;
+	}
+
+	public synchronized int resumeCalls(final Location location) {
+		final var calls = resumeCalls.get(location.id());
+		return calls == null ? -1 : calls;
 	}
 }
