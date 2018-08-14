@@ -40,7 +40,7 @@ public class SimulatorTest {
 		this.map = new Map("", locations, connections);
 	}
 
-	@Test
+	@Test(timeout = 100)
 	public void testErrorReporting() {
 		final var schedules = new ArrayList<TrainSchedule>();
 		schedules.add(new TrainSchedule(e, a));
@@ -50,7 +50,7 @@ public class SimulatorTest {
 		assertFalse("Simulator.run() does not test for exceptions!", Simulator.run(problem, new ExceptionRecorder()));
 	}
 
-	@Test
+	@Test(timeout = 100)
 	public void singleTrain() {
 		final var schedules = new ArrayList<TrainSchedule>();
 		schedules.add(new TrainSchedule(e, a));
@@ -60,7 +60,7 @@ public class SimulatorTest {
 		assertTrue(Simulator.run(problem, new Validator(problem)));
 	}
 
-	@Test
+	@Test(timeout = 100)
 	public void twoTrains() {
 		final var schedules = new ArrayList<TrainSchedule>();
 		schedules.add(new TrainSchedule(e, a));
@@ -71,7 +71,7 @@ public class SimulatorTest {
 		assertTrue(Simulator.run(problem, new Validator(problem)));
 	}
 
-	@Test
+	@Test(timeout = 100)
 	public void twoTrainsOpposing() {
 		final var schedules = new ArrayList<TrainSchedule>();
 		schedules.add(new TrainSchedule(e, a));
@@ -82,7 +82,7 @@ public class SimulatorTest {
 		assertTrue(Simulator.run(problem, new Validator(problem)));
 	}
 
-	@Test
+	@Test(timeout = 1000)
 	public void complex() {
 		final var schedules = new ArrayList<TrainSchedule>();
 		for (final var locationA : map.locations()) {
@@ -99,7 +99,7 @@ public class SimulatorTest {
 		assertTrue(Simulator.run(problem, new Validator(problem)));
 	}
 
-	@Test
+	@Test(timeout = 100)
 	public void connectionSwitchDirection() {
 
 		final var locations = new ArrayList<Location>();

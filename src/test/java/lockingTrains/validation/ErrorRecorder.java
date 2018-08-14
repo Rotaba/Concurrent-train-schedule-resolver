@@ -4,7 +4,7 @@ import lockingTrains.shared.Connection;
 import lockingTrains.shared.Location;
 import lockingTrains.shared.TrainSchedule;
 
-public class ExceptionRecorder extends Recorder {
+public class ErrorRecorder extends Recorder {
 	@Override
 	public void start(final TrainSchedule schedule) {
 	}
@@ -23,12 +23,12 @@ public class ExceptionRecorder extends Recorder {
 
 	@Override
 	public void travel(final TrainSchedule schedule, final Connection section) {
-		throw new IllegalStateException();
+		assert false;
 	}
 
 	@Override
 	void travel(final long timestamp, final TrainSchedule schedule, final Connection section) {
-		throw new IllegalStateException();
+		assert false;
 	}
 
 	@Override
@@ -65,11 +65,11 @@ public class ExceptionRecorder extends Recorder {
 
 	@Override
 	public void done() {
-		throw new IllegalStateException();
+		assert false;
 	}
 
 	@Override
 	void done(final long timestamp) {
-		throw new IllegalStateException();
+		assert false;
 	}
 }
