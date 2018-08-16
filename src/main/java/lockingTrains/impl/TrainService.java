@@ -1,12 +1,9 @@
 package lockingTrains.impl;
 
-import javafx.geometry.Pos;
 import lockingTrains.shared.*;
 import lockingTrains.shared.Map;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
