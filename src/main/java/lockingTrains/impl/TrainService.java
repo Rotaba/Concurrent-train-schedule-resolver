@@ -1,5 +1,6 @@
 package lockingTrains.impl;
 
+import javafx.geometry.Pos;
 import lockingTrains.shared.*;
 import lockingTrains.shared.Map;
 
@@ -26,8 +27,8 @@ public class TrainService {
     public TrainService(Map map){
         this.allConnections = map.connections();
         this.allLocations = map.locations();
-        this.firstConnectionId = allConnections.get(0).id();
-        this.firstLocationId = allLocations.get(0).id();
+        this.firstConnectionId = allConnections.get(0).getRomanAndAntoineID();
+        this.firstLocationId = allLocations.get(0).getRomanAndAntoineID();
     }
 
 
@@ -39,7 +40,7 @@ public class TrainService {
      * @param id of the asking train (debugging info)
      * @return True; reserved and locked, false; couldn't lock one of the Conn/Loc on the route
      */
-    boolean reserveRoute(List <Connection> connections, Location currentLocation, int id){
+    Position reserveRoute(List <Connection> connections, Location currentLocation, int id){
         List <Connection> alreadyReservedConnection = new LinkedList<>();
         List <Location> alreadyReservedLocation = new LinkedList<>();
         //get all locations on the route
@@ -50,14 +51,14 @@ public class TrainService {
         int i = 0;
         //get all ids of the asked connections
         for(Connection c : connections) {
-            connectionsIds[i] = c.id();
+            connectionsIds[i] = c.getRomanAndAntoineID();
             i++;
         }
 
         i = 0;
         //get all ids for the asked locations
         for(Location l : locationsToReserve) {
-            locationIds[i] = l.id();
+            locationIds[i] = l.getRomanAndAntoineID();
             i++;
         }
         //sort the ids in ascending order
@@ -74,7 +75,7 @@ public class TrainService {
                 for(Connection c : alreadyReservedConnection) {
                     c.getLock().unlock();
                 }
-                return false;
+                return allConnections.get(connectionsIds[i]-firstConnectionId);
             }
         }
         //try to lock all locations on the route in ascencding order of their ids
@@ -90,10 +91,10 @@ public class TrainService {
                 for(Location l : alreadyReservedLocation) {
                     l.getLock().unlock();
                 }
-                return false;
+                return allLocations.get(locationIds[i]-firstLocationId);
             }
         }
-        return true;
+        return null;
     }
 
 
@@ -117,14 +118,14 @@ public class TrainService {
         int i = 0;
         //get all ids
         for(Connection c : route) {
-            connectionsIds[i] = c.id();
+            connectionsIds[i] = c.getRomanAndAntoineID();
             i++;
         }
 
         i = 0;
         //get all ids
         for(Location l : locationsToReserve) {
-            locationIds[i] = l.id();
+            locationIds[i] = l.getRomanAndAntoineID();
             i++;
         }
         Arrays.sort(connectionsIds);
@@ -139,6 +140,7 @@ public class TrainService {
             else {
                 //else rememnber
                 avoid.add(allConnections.get(connectionsIds[i]-firstConnectionId));
+                break;
             }
         }
 
@@ -151,6 +153,7 @@ public class TrainService {
             else {
                 //else remember
                 avoid.add(allLocations.get(locationIds[i]-firstLocationId));
+                break;
             }
         }
         return avoid;
@@ -218,13 +221,11 @@ public class TrainService {
      */
     void waitingforReservedRoute(List <Connection> connections, Location currentLocation, int id)
             throws InterruptedException {
-        lock.lock();
 
         reserveRoute2(connections, currentLocation, id);
          //   lock.lock();
           //  waitingRouteFree.await(10, TimeUnit.MILLISECONDS);
          //   lock.unlock();
-        lock.unlock();
 
 
     }
@@ -240,14 +241,14 @@ public class TrainService {
         int i = 0;
         //get all ids of the asked connections
         for(Connection c : connections) {
-            connectionsIds[i] = c.id();
+            connectionsIds[i] = c.getRomanAndAntoineID();
             i++;
         }
 
         i = 0;
         //get all ids for the asked locations
         for(Location l : locationsToReserve) {
-            locationIds[i] = l.id();
+            locationIds[i] = l.getRomanAndAntoineID();
             i++;
         }
         //sort the ids in ascending order

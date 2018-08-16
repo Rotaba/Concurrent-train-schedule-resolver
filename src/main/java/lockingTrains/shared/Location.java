@@ -112,6 +112,16 @@ public class Location extends Position {
 	private final int id;
 	private final Lock lock;
 
+	public int getRomanAndAntoineID() {
+		return romanAndAntoineID;
+	}
+
+	public void setRomanAndAntoineID(int romanAndAntoineID) {
+		this.romanAndAntoineID = romanAndAntoineID;
+	}
+
+	private int romanAndAntoineID;
+
 	/**
 	 * Constructs a new location.
 	 *

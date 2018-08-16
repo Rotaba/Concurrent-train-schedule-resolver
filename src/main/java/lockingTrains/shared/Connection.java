@@ -26,6 +26,17 @@ public class Connection extends Position {
 	private final Location second;
 	private final int time;
 	private final int id;
+
+	public int getRomanAndAntoineID() {
+		return romanAndAntoineID;
+	}
+
+	public void setRomanAndAntoineID(int romanAndAntoineID) {
+		this.romanAndAntoineID = romanAndAntoineID;
+	}
+
+	private int romanAndAntoineID;
+
 	/**
 	 *
 	 */
