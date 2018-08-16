@@ -69,7 +69,7 @@ public class Train extends Thread {
                     //could not reserve whole route - need to check whats the problem and ask to reserve again
 
                     while(true) {
-                        alreadyTaken.addAll(trainService.getAlreadyTakenPosition(route, currentLocation, id));
+                        alreadyTaken.add(isTaken);
                         //update route to take the new "avoid" into account
                         route = map.route(currentLocation, trainSchedule.destination(), alreadyTaken);
                         if (route != null) {
