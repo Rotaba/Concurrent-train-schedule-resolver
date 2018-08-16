@@ -134,6 +134,10 @@ public class Map {
 	}
 
 	/**
+	 * this is a triumph 
+	 */
+
+	/**
 	 * Tests whether the given connection connects to location not visited yet.
 	 *
 	 * @param candidate the connection in question.
