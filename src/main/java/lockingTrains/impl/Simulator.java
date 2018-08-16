@@ -73,6 +73,7 @@ public class Simulator {
 				print("empty problem, and calling recorder was bad");
 				return  false;
 			}
+			//VERYIMPORTANTEDIT
 			catch (AssertionError assss) {
 				print("wtfffffff!!!!! ");
 				return false;
@@ -118,8 +119,9 @@ public class Simulator {
 			print("error while calling recorder.done, everything else fine");
 			return false;
 		}
+		//VERYIMPORTANTEDIT
 		catch (AssertionError ASSSS) {
-			print("fuck fing assertiuons errors ");
+			print("AssertionError");
 			return false;
 		}
 		return true;

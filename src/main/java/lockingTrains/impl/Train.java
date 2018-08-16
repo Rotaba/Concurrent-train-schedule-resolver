@@ -100,8 +100,9 @@ public class Train extends Thread {
             e.printStackTrace();
             error = true; //for isError()
         }
+        //VERYIMPORTANTEDIT
         catch (AssertionError ass) {
-            print("what a bitch is testing for assertion errors, WTFFFFF");
+            print("AssertionError in train ");
             error = true;
         }
     }

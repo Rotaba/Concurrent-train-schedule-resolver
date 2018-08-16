@@ -27,6 +27,7 @@ public class TrainService {
     public TrainService(Map map){
         this.allConnections = map.connections();
         this.allLocations = map.locations();
+        //VERYIMPORTANTEDIT
         this.firstConnectionId = allConnections.get(0).getRomanAndAntoineID();
         this.firstLocationId = allLocations.get(0).getRomanAndAntoineID();
     }
@@ -116,6 +117,7 @@ public class TrainService {
 
         int i = 0;
         //get all ids
+        //VERYIMPORTANTEDIT
         for(Connection c : route) {
             connectionsIds[i] = c.getRomanAndAntoineID();
             i++;
@@ -190,6 +192,7 @@ public class TrainService {
      */
     void freeConnection(Connection connection, int id) {
         connection.getLock().unlock();
+        //VERYIMPORTANTEDIT
         //we need notifyAll here, because we do not know which connection will be freed, and
         //which other train does need this freed connection.
   //      lock.lock();
@@ -205,6 +208,7 @@ public class TrainService {
      */
     void freeLocation(Location location, int id) {
         location.getLock().unlock();
+        //VERYIMPORTANTEDIT
  //       lock.lock();
  //       waitingRouteFree.signalAll();
   //      lock.unlock();
@@ -220,7 +224,7 @@ public class TrainService {
      */
     void waitingforReservedRoute(List <Connection> connections, Location currentLocation, int id)
             throws InterruptedException {
-
+        //VERYIMPORTANTEDIT
         reserveRoute2(connections, currentLocation, id);
          //   lock.lock();
           //  waitingRouteFree.await(10, TimeUnit.MILLISECONDS);
@@ -229,6 +233,7 @@ public class TrainService {
 
     }
 
+    //VERYIMPORTANTEDIT
     boolean reserveRoute2(List <Connection> connections, Location currentLocation, int id){
         List <Connection> alreadyReservedConnection = new LinkedList<>();
         List <Location> alreadyReservedLocation = new LinkedList<>();

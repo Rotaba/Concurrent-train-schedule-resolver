@@ -112,6 +112,7 @@ public class Location extends Position {
 	private final int id;
 	private final Lock lock;
 
+	//VERYIMPORTANTEDIT
 	public int getRomanAndAntoineID() {
 		return romanAndAntoineID;
 	}
