@@ -27,6 +27,7 @@ public class Connection extends Position {
 	private final int time;
 	private final int id;
 
+	//VERYIMPORTANTEDIT
 	public int getRomanAndAntoineID() {
 		return romanAndAntoineID;
 	}
