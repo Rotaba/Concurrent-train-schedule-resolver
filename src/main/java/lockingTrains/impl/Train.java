@@ -60,19 +60,22 @@ public class Train extends Thread {
                     return;
                 }
                 route = map.route(currentLocation, trainSchedule.destination(), empty);
-                if (trainService.reserveRoute(route, currentLocation, id)) {
+                Collection<Position> alreadyTaken = new LinkedList<>();
+                Position isTaken = trainService.reserveRoute(route, currentLocation, id);
+                if (isTaken == null) {
                     //route was reserved
                     drive(route);
                 } else {
                     //could not reserve whole route - need to check whats the problem and ask to reserve again
-                    Collection<Position> alreadyTaken = new LinkedList<>();
+
                     while(true) {
                         alreadyTaken.addAll(trainService.getAlreadyTakenPosition(route, currentLocation, id));
                         //update route to take the new "avoid" into account
                         route = map.route(currentLocation, trainSchedule.destination(), alreadyTaken);
                         if (route != null) {
                             //we found an alternative route
-                            if (trainService.reserveRoute(route, currentLocation, id)) { //try to reserve from TrainService
+                            isTaken = trainService.reserveRoute(route, currentLocation, id);
+                            if (isTaken == null) { //try to reserve from TrainService
                                 drive(route); //drive using the newly reserved route
                                 break;
                             }
@@ -96,6 +99,10 @@ public class Train extends Thread {
         catch (Exception e) {
             e.printStackTrace();
             error = true; //for isError()
+        }
+        catch (AssertionError ass) {
+            print("what a bitch is testing for assertion errors, WTFFFFF");
+            error = true;
         }
     }
 

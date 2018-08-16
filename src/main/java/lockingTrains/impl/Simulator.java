@@ -3,6 +3,7 @@ package lockingTrains.impl;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.locks.Condition;
 
 import lockingTrains.shared.*;
 import lockingTrains.shared.io.Parser;
@@ -62,7 +63,34 @@ public class Simulator {
 	public static boolean run(final Problem problem, final Recorder recorder) {
 		//get map and schedule from problem
 		List<TrainSchedule> schedules = problem.schedules();
+
 		Map map = problem.map();
+		if(schedules.isEmpty() || map.locations().isEmpty() || map.connections().isEmpty()) {
+			try {
+				recorder.done();
+				return true;
+			}catch (Exception e) {
+				print("empty problem, and calling recorder was bad");
+				return  false;
+			}
+			catch (AssertionError assss) {
+				print("wtfffffff!!!!! ");
+				return false;
+			}
+		}
+		//initialize locations & connections
+		int ourID = 0;
+		for( Location l : map.locations()) {
+			l.setRomanAndAntoineID(ourID);
+			ourID++;
+		}
+		ourID = 0;
+		for (Connection c : map.connections()) {
+			c.setRomanAndAntoineID(ourID);
+			ourID++;
+		}
+
+
 		//start a new TS and a new train array the size of schedule
 		TrainService trainService = new TrainService(map);
 		Train[] trains = new Train[schedules.size()];
@@ -84,7 +112,16 @@ public class Simulator {
 			}
 		}
 		//when all trains finish from .join() we tell rc that we're done
-		recorder.done();
+		try {
+			recorder.done();
+		}catch (Exception e) {
+			print("error while calling recorder.done, everything else fine");
+			return false;
+		}
+		catch (AssertionError ASSSS) {
+			print("fuck fing assertiuons errors ");
+			return false;
+		}
 		return true;
 	}
 	private static void print(String str) {
