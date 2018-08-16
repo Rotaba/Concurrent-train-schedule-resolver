@@ -106,7 +106,6 @@ public class TrainService {
      * @return List of Positions which couldn't be locked; to be used in the avoid b Train to recalculate the route again
      *
      */
-
     Collection<Position> getAlreadyTakenPosition(List<Connection> route, Location currentLocation, int id) {
         List <Position> avoid = new LinkedList<>();
         //get all locations on route
