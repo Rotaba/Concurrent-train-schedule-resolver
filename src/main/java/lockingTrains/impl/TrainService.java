@@ -36,7 +36,7 @@ public class TrainService {
      * @param connections of the asked route
      * @param currentLocation of the asking Train
      * @param id of the asking train (debugging info)
-     * @return True; reserved and locked, false; couldn't lock one of the Conn/Loc on the route
+     * @return Positon, if failed, or {@code null} wenn reserved
      */
     Position reserveRoute(List <Connection> connections, Location currentLocation, int id){
         List <Connection> alreadyReservedConnection = new LinkedList<>();
@@ -103,7 +103,8 @@ public class TrainService {
      * @param id of calling train (debugging info)
      * @return List of Positions which couldn't be locked; to be used in the avoid b Train to recalculate the route again
      *
-     */
+     */ // deprecated
+    /*
     Collection<Position> getAlreadyTakenPosition(List<Connection> route, Location currentLocation, int id) {
         List <Position> avoid = new LinkedList<>();
         //get all locations on route
@@ -156,7 +157,7 @@ public class TrainService {
         }
         return avoid;
     }
-
+*/
 
     /**
      * Converts a connection route intro a Location list
@@ -183,7 +184,7 @@ public class TrainService {
 
 
     /**
-     * Unlock a connection and singal to sleeping thread
+     * Unlock a connection
      * @param connection on which we call the unlock
      * @param id of calling train (debugging info)
      */
@@ -199,7 +200,7 @@ public class TrainService {
 
 
     /**
-     * Unlock a Location and singal to sleeping thread
+     * Unlock a Location
      * @param location on which we call the unlock
      * @param id of calling train (debugging info)
      */
@@ -212,15 +213,14 @@ public class TrainService {
     }
 
     /**
-     * When a train is unable to reserve a route to a parking place; it would use the waitingRouteFree condition to wait
-     * wait signal comes from any Conn/Loc unlock
+     * When a train is unable to reserve a route to a parking place;
      * @param connections that the train wants to reserve
      * @param currentLocation of calling train
      * @param id of calling train (debugging info)
      * @throws InterruptedException caused by the await
      */
     void waitingforReservedRoute(List <Connection> connections, Location currentLocation, int id)
-            throws InterruptedException {
+            {
         //VERYIMPORTANTEDIT
         reserveRoute2(connections, currentLocation, id);
          //   lock.lock();
@@ -230,8 +230,14 @@ public class TrainService {
 
     }
 
+    /**
+     *  does the same as reserve route, except that it does use lock() instead of tryLock()
+     * @param connections  the route to reserve
+     * @param currentLocation the current location of the train
+     * @param id debuggin info
+     */
     //VERYIMPORTANTEDIT
-    boolean reserveRoute2(List <Connection> connections, Location currentLocation, int id){
+    void reserveRoute2(List <Connection> connections, Location currentLocation, int id){
         List <Connection> alreadyReservedConnection = new LinkedList<>();
         List <Location> alreadyReservedLocation = new LinkedList<>();
         //get all locations on the route
@@ -266,7 +272,6 @@ public class TrainService {
             allLocations.get(locationIds[i]-firstLocationId).getLock().lock();
 
         }
-        return true;
     }
 
     //DEBUG
